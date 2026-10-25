@@ -1,0 +1,23 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  DUE(["Scheduled think<br/>nextThinkAt reached"])
+  EVT(["Event<br/>stimulus · robbed · stuck · arrived"])
+  EVT --> INB["Inbox<br/>max 8 · oldest dropped"]
+  INB --> LVL{"Outranks the<br/>running action?"}
+  LVL -->|"yes"| WAKE["Wake after<br/>reaction delay"]
+  LVL -->|"no"| WAIT["Wait for the next<br/>scheduled think"]
+  DUE --> SENSE
+  WAKE --> SENSE
+  SENSE["Sense + remember<br/>vision scan if due · drain inbox<br/>update tracks · expire TTLs"]
+  SENSE --> APPR["Appraise<br/>decay, then raise<br/>Alertness and Fear"]
+  APPR --> MODE{"Mode threshold<br/>crossed?"}
+  MODE -->|"yes"| SWM["Switch mode<br/>new jitter · no momentum"]
+  MODE -->|"no"| SCORE
+  SWM --> SCORE["Score the mode's actions<br/>U = weight × considerations<br/>× momentum × jitter"]
+  SCORE --> COMMIT{"Keep the running<br/>action?"}
+  COMMIT -->|"yes: not done, not beaten<br/>by 20% after min time"| EXEC
+  COMMIT -->|"no"| SW["Stop old · release POI<br/>cancel path · start new"]
+  SW --> EXEC["Execute<br/>steps drive Locomotion<br/>and Presentation"]
+  EXEC --> RES["Reschedule<br/>Panic 4 Hz · Alert 2 Hz<br/>Ambient 0.5 to 1 Hz"]
+  RES -.-> DUE
+  EXEC -.->|"every frame"| MON["Locomotion monitor<br/>arrival · stuck · MoveTo refresh<br/>raises arrived and stuck events"]

@@ -1,0 +1,33 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  AMB["AMBIENT<br/>on a trip · browsing · phone"]
+  AMB -->|"theft seen or heard"| RD["Reaction delay 0.3 to 0.8 s<br/>head turns to the noise"]
+  AMB -->|"robbed directly"| SHK["VICTIM · Shock<br/>0.6 to 1.2 s, uninterruptible"]
+  RD --> APP{"Fear over panic<br/>threshold?"}
+  APP -->|"no"| ALR["ALERT<br/>Ignore · Observe · Film<br/>Call 999 · Shout<br/>Move away · Chase"]
+  APP -->|"yes, and danger present"| PAN["PANIC<br/>Flee · Shelter · Freeze<br/>Run to police"]
+  SHK --> VCH{{"Victim chooses<br/>Freeze · Chase<br/>Get away · Seek help"}}
+  VCH -->|"danger still near"| PAN
+  VCH -->|"thief gone"| REC
+  ALR -->|"escalation"| PAN
+  ALR -->|"calm for 3 s"| AMB
+  PAN -->|"calm and no threat for 4 s"| REC["RECOVER<br/>Catch breath · Tell someone<br/>Statement · Resume<br/>Go home"]
+  POL(["Police arrive"])
+  POL -.->|"fear fades 2× faster"| PAN
+  POL -.->|"watching feels safer"| ALR
+  POL -.->|"holds an incident note"| STM["Give statement<br/>point at last-seen spot"]
+  STM -->|"note handed over, deleted"| REC
+  REC -->|"not shaken"| RES["Resume trip"]
+  REC -->|"shaken"| HOM["Go home<br/>exit portal · despawn"]
+  RES --> AMB
+  CLS(["Incident closed"]) ==>|"all citizens"| PRG["Purge tracks + notes<br/>for that incident"]
+  classDef calm stroke:#2e7a4f,stroke-width:3px
+  classDef alert stroke:#b07415,stroke-width:3px
+  classDef fear stroke:#b4271f,stroke-width:3px
+  classDef victim stroke:#8a4a7c,stroke-width:3px
+  classDef recover stroke:#3a6f98,stroke-width:3px
+  class AMB,RES calm
+  class ALR,RD alert
+  class PAN fear
+  class SHK,VCH victim
+  class REC,STM,HOM recover

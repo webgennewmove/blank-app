@@ -1,0 +1,43 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  subgraph SRV["Server · authoritative"]
+    HB["Heartbeat<br/>one central loop"]
+    LODM["LOD manager · 1 Hz<br/>Hot · Warm · Cold"]
+    SCH2["Scheduler<br/>due queue · 1 ms budget"]
+    BRN["Brains<br/>perceive · remember · decide"]
+    EXIST["Existing systems<br/>Theft · Police · Wanted"]
+    LOCO["Locomotion<br/>MoveTo per segment"]
+    NAVQ["PedNet A* + Path Queue<br/>max 2 pathfinding jobs"]
+    POPD["Population Director<br/>model pool · portals"]
+    HUMS["Server-owned Humanoids<br/>unused states disabled"]
+  end
+  subgraph NET["Replication"]
+    PHY["Physics<br/>root part motion"]
+    ATR["Attributes<br/>on change only"]
+    TAG["Tag + streaming<br/>Atomic models"]
+    BRK["Bark event<br/>ids · rate-limited"]
+  end
+  subgraph CLI["Each client"]
+    INP["Player input<br/>existing theft remote"]
+    CCTL["Citizen Client Controller<br/>local Animator · cleanup"]
+    VIS["Animation · head-look<br/>phone prop · barks · sound"]
+  end
+  HB -->|"1 Hz"| LODM
+  HB -->|"every frame"| SCH2
+  LODM -->|"tiers"| SCH2
+  SCH2 --> BRN
+  EXIST -->|"thefts · sirens"| BRN
+  BRN -->|"reports"| EXIST
+  BRN --> LOCO --> HUMS
+  BRN --> NAVQ
+  POPD --> HUMS
+  HUMS --> PHY
+  BRN --> ATR
+  POPD --> TAG
+  BRN --> BRK
+  PHY --> CCTL
+  ATR --> CCTL
+  TAG --> CCTL
+  BRK --> CCTL
+  CCTL --> VIS
+  EXIST <-->|"theft request · result"| INP

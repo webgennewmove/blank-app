@@ -1,0 +1,1638 @@
+<title>MAGALO Citizen Brain</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Design proposal for MAGALO's civilian AI: architecture, decision loop, crime reactions, memory lifecycle, multiplayer performance and roadmap.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: long-form engineering proposal. Centered 46rem text column; diagrams, tables and score panels break out to 74rem.
+   One bold element: an enamel street-name plate as the masthead. Mode colours (ambient, alert, panic, victim, recover) are semantic and used consistently. */
+:root{
+  --bg:#f2f3ef; --surface:#ffffff; --surface-2:#e8eae4; --ink:#16191d; --ink-2:#4a525b; --rule:#d2d6ce;
+  --accent:#1d4e89; --accent-soft:#dde6f2;
+  --plate:#fbfbf7; --plate-ink:#121417; --plate-red:#b8141e; --screw:#a3a8ad; --shadow:rgba(20,24,28,.22);
+  --paper:#fbfbf8; --paper-edge:#d2d6ce; --paper-ink:#2a2f35;
+  --m-ambient:#2e7a4f; --m-alert:#9c6210; --m-panic:#b4271f; --m-victim:#7b3a6d; --m-recover:#2f6690;
+  --bar:#1d4e89; --bar-track:#e3e6df;
+  --font-display:"Archivo","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Source Sans 3","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --text:46rem; --wide:74rem;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111316; --surface:#181b1f; --surface-2:#22262c; --ink:#e7e9e4; --ink-2:#a7aeb6; --rule:#2e3339;
+    --accent:#91b7ec; --accent-soft:#1d2a3b;
+    --plate:#f1f1ea; --plate-ink:#121417; --plate-red:#b8141e; --screw:#a3a8ad; --shadow:rgba(0,0,0,.5);
+    --paper:#e9eae4; --paper-edge:#3a4047; --paper-ink:#2a2f35;
+    --m-ambient:#6cc391; --m-alert:#e2a64c; --m-panic:#f27b6f; --m-victim:#d391c4; --m-recover:#86b6df;
+    --bar:#91b7ec; --bar-track:#2a2f36;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111316; --surface:#181b1f; --surface-2:#22262c; --ink:#e7e9e4; --ink-2:#a7aeb6; --rule:#2e3339;
+  --accent:#91b7ec; --accent-soft:#1d2a3b;
+  --plate:#f1f1ea; --plate-ink:#121417; --plate-red:#b8141e; --screw:#a3a8ad; --shadow:rgba(0,0,0,.5);
+  --paper:#e9eae4; --paper-edge:#3a4047; --paper-ink:#2a2f35;
+  --m-ambient:#6cc391; --m-alert:#e2a64c; --m-panic:#f27b6f; --m-victim:#d391c4; --m-recover:#86b6df;
+  --bar:#91b7ec; --bar-track:#2a2f36;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+body{background:var(--bg);color:var(--ink);font:400 1.0625rem/1.62 var(--font-body)}
+.page{padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:2.5rem 6rem}
+.page > header,.page > nav{max-width:var(--text);margin-inline:auto}
+.page > nav{margin-top:2rem}
+.page > section,.page > footer{max-width:var(--wide);margin-inline:auto}
+.page > section > *,.page > footer > *{max-width:var(--text);margin-inline:auto}
+.page > section > .wide{max-width:var(--wide)}
+.page > section > * + *{margin-top:1rem}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;line-height:1.15;margin:0}
+h2{font-size:clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);font-weight:760;font-stretch:82%}
+h3{font-size:1.3rem;font-weight:700;font-stretch:88%}
+.page > section > h3{margin-top:2.4rem}
+.page > section > h4{margin-top:1.8rem}
+h4{font-size:1.06rem;font-weight:700;font-stretch:94%}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+strong{font-weight:700}
+ul,ol{margin:0;padding-left:1.3rem}
+li + li{margin-top:.35rem}
+code{font-family:var(--font-mono);font-size:.86em;background:var(--surface-2);padding:.06em .32em;border-radius:4px}
+.eyebrow{font:600 .72rem/1.3 var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.muted{color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Masthead */
+.masthead{display:grid;gap:1.4rem;justify-items:start}
+.plate{display:inline-block;background:var(--plate);border-radius:12px;padding:.5rem;box-shadow:0 1px 0 var(--shadow),0 14px 28px -18px var(--shadow);max-width:100%}
+.plate-inner{position:relative;border:3px solid var(--plate-ink);border-radius:7px;padding:.85rem clamp(1.4rem, 4vw, 2.6rem) .7rem;text-align:center}
+.plate-inner::before,.plate-inner::after{content:"";position:absolute;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--screw)}
+.plate-inner::before{left:.45rem}.plate-inner::after{right:.45rem}
+.postcode{position:absolute;top:.4rem;left:.75rem;font:800 .8rem/1 var(--font-display);font-stretch:90%;color:var(--plate-red);letter-spacing:.04em}
+.plate h1{color:var(--plate-ink);font-weight:820;font-stretch:76%;font-size:clamp(2.2rem, 1.2rem + 5.2vw, 4.4rem);letter-spacing:.035em;text-transform:uppercase;line-height:1}
+.borough{display:block;margin-top:.4rem;font:760 clamp(.7rem, .58rem + .5vw, .95rem)/1.2 var(--font-display);font-stretch:92%;color:var(--plate-red);letter-spacing:.16em;text-transform:uppercase}
+.lede{font-size:clamp(1.15rem, 1.02rem + .5vw, 1.35rem);line-height:1.5;max-width:40rem}
+.meta{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
+.meta span{font:500 .8rem/1.4 var(--font-mono);color:var(--ink-2)}
+.meta .status{color:var(--ink);font-weight:600}
+
+/* Notes and the rule box */
+.note{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.15rem;display:grid;gap:.5rem}
+.rule{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1rem;align-items:start;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1.1rem 1.2rem}
+.roundel{width:54px;height:54px;flex:none}
+.roundel .disc{fill:var(--plate);stroke:var(--plate-red)}
+.roundel .eye{fill:none;stroke:var(--plate-ink)}
+.roundel .pupil{fill:var(--plate-ink)}
+.roundel .slash{stroke:var(--plate-red)}
+.rule h3{margin:0 0 .35rem;font-size:1.15rem}
+.rule ol{margin-top:.5rem}
+
+/* Contents */
+.contents{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem}
+.contents ol{columns:2 15rem;column-gap:2rem;margin-top:.6rem;padding-left:1.5rem}
+.contents li{break-inside:avoid}
+.contents li + li{margin-top:.25rem}
+
+/* Section heads */
+.section-head{display:flex;align-items:baseline;gap:.8rem;border-top:2px solid var(--ink);padding-top:.9rem;margin-top:4.5rem}
+.section-no{font:600 .82rem/1 var(--font-mono);color:var(--ink-2);letter-spacing:.06em;min-width:1.2rem}
+
+/* Tables */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem;line-height:1.45}
+th{text-align:left;font:600 .7rem/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);background:var(--surface-2)}
+th,td{padding:.6rem .75rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+td code{white-space:normal}
+table.minw{min-width:46rem}
+table.minw-s{min-width:34rem}
+td.nowrap,th.nowrap{white-space:nowrap}
+tr.group td{background:var(--surface-2);font:600 .74rem/1.3 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+
+/* Formulas */
+.formula{font:500 .88rem/1.65 var(--font-mono);background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:.8rem 1rem;overflow-x:auto;white-space:pre}
+
+/* Mode chips */
+.mode{display:inline-flex;align-items:center;font:600 .7rem/1 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;padding:.28rem .5rem;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.m-ambient{color:var(--m-ambient)}.m-alert{color:var(--m-alert)}.m-panic{color:var(--m-panic)}.m-victim{color:var(--m-victim)}.m-recover{color:var(--m-recover)}
+
+/* Score bars: one scale, 0 to 1 */
+.scores{list-style:none;padding:0;margin:0;display:grid;gap:.28rem;font-size:.9rem}
+.scores li{display:grid;grid-template-columns:minmax(6.8rem, max-content) minmax(3rem,1fr) 2.9rem;align-items:center;gap:.6rem;margin:0}
+.scores .a{white-space:nowrap}
+.scores .bar{height:.55rem;background:var(--bar-track);border-radius:999px;overflow:hidden}
+.scores .bar i{display:block;height:100%;width:calc(var(--v) * 100%);background:var(--bar);opacity:.42;border-radius:999px}
+.scores .win .bar i{opacity:1}
+.scores .win .a{font-weight:700}
+.scores .n{font:500 .8rem/1 var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+.scores .off .a,.scores .off .n{color:var(--ink-2)}
+
+/* Decision-cycle ticks */
+.ticks{display:grid;gap:.9rem}
+.tick{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.15rem}
+.tick header{display:flex;flex-wrap:wrap;align-items:baseline;gap:.45rem .8rem}
+.tick time{font:600 .86rem/1 var(--font-mono);font-variant-numeric:tabular-nums}
+.tick h4{flex:1 1 14rem}
+.kv{display:grid;grid-template-columns:9.2rem minmax(0,1fr);gap:.5rem 1rem;margin:.75rem 0 0}
+.kv dt{font:600 .7rem/1.5 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);padding-top:.2rem}
+.kv dd{margin:0;min-width:0}
+.tick.brief p{margin-top:.5rem}
+
+/* Citizens and scenarios */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.who{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.1rem;display:grid;gap:.6rem;align-content:start;min-width:0}
+.who h4{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .6rem}
+.who h4 small{font:500 .74rem/1.3 var(--font-mono);color:var(--ink-2);letter-spacing:.02em}
+.who p{font-size:.97rem}
+.who .why{font-size:.9rem;color:var(--ink-2)}
+.traits .a{min-width:6.2rem}
+.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.25rem .9rem;margin:0;font-size:.86rem}
+.params div{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--rule);padding-block:.12rem}
+.params dt{color:var(--ink-2)}
+.params dd{margin:0;font-family:var(--font-mono);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scenario-setup{color:var(--ink-2)}
+
+/* Diagrams */
+figure{margin:0}
+.sheet{background:var(--paper);border:1px solid var(--paper-edge);border-radius:10px;padding:1rem;overflow-x:auto}
+.sheet pre.mermaid{margin:0 auto;background:transparent;color:var(--paper-ink);font:12px/1.45 var(--font-mono);white-space:pre;min-width:44rem;text-align:center}
+.sheet svg{display:block;margin-inline:auto;height:auto;white-space:normal;line-height:1.5}
+.sheet svg *{box-sizing:content-box}
+figcaption{margin-top:.6rem;font-size:.94rem;color:var(--ink-2);max-width:var(--text)}
+figcaption strong{color:var(--ink)}
+details.src{margin-top:.5rem}
+details.src summary{cursor:pointer;font:600 .76rem/1.6 var(--font-mono);color:var(--accent);width:max-content}
+details.src pre{margin:.5rem 0 0;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:.8rem;overflow:auto;font:12px/1.5 var(--font-mono);max-height:22rem;white-space:pre}
+.copy{margin-top:.45rem;font:600 .76rem/1 var(--font-mono);background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:.45rem .7rem;cursor:pointer}
+
+/* Roadmap */
+.ms{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1.1rem 1.2rem}
+.ms header{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem .8rem}
+.ms-id{font:820 1.05rem/1 var(--font-display);font-stretch:80%;background:var(--ink);color:var(--bg);padding:.3rem .45rem;border-radius:4px}
+.ms .tag{font:600 .7rem/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.ms .kv{grid-template-columns:8.6rem minmax(0,1fr)}
+.stack{display:grid;gap:.9rem}
+
+/* Two-column lists */
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.cols > div{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.1rem;min-width:0}
+.cols h4{margin-bottom:.4rem}
+
+.tolink{position:fixed;right:calc(14px + env(safe-area-inset-right, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));font:600 .76rem/1 var(--font-mono);background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:999px;padding:.55rem .8rem;text-decoration:none;box-shadow:0 6px 16px -10px var(--shadow)}
+footer{margin-top:4rem;border-top:1px solid var(--rule);padding-top:1rem;font-size:.9rem;color:var(--ink-2)}
+
+@media (max-width: 960px){
+  .trio{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr}
+}
+@media (max-width: 640px){
+  .kv,.ms .kv{grid-template-columns:1fr;gap:.2rem}
+  .kv dd{margin-bottom:.45rem}
+  .rule{grid-template-columns:1fr}
+  .params{grid-template-columns:1fr}
+  .scores li{grid-template-columns:minmax(6rem, max-content) minmax(2rem,1fr) 2.7rem}
+  .section-head{margin-top:3.5rem}
+}
+</style>
+
+<div class="page">
+
+<header class="masthead" id="top">
+  <div class="plate">
+    <div class="plate-inner">
+      <span class="postcode" aria-hidden="true">MG1</span>
+      <h1>Citizen Brain</h1>
+      <span class="borough" aria-hidden="true">Borough of MAGALO</span>
+    </div>
+  </div>
+  <p class="lede">How a MAGALO civilian notices, decides, reacts and settles back into city life, and how the design guarantees that no civilian ever recognises a player.</p>
+  <div class="meta">
+    <span>Design proposal v1</span>
+    <span>25 October 2026</span>
+    <span class="status">Status: awaiting your approval</span>
+    <span>No code written · no project files changed</span>
+  </div>
+  <div class="note">
+    <span class="eyebrow">Read this first</span>
+    <p>I could not inspect MAGALO's code. The repository attached to this session (<code>webgennewmove/blank-app</code>) is a blank Streamlit template, and the only other repository this session can see is an unrelated fork. So this design treats your theft, police and wanted systems as black boxes and connects to them through four small contracts (<a href="#contracts">2.9</a>). Where I had to assume how something works today, I say so.</p>
+    <p>Every score in this document comes from one set of formulas (<a href="#catalogue">2.5</a>). The three example citizens differ only in their trait numbers, never in code.</p>
+  </div>
+</header>
+
+<nav class="contents" id="contents" aria-label="Contents">
+  <span class="eyebrow">Contents</span>
+  <ol>
+    <li><a href="#summary">Executive summary</a></li>
+    <li><a href="#architecture">Complete modular architecture</a></li>
+    <li><a href="#diagrams">Five diagrams</a></li>
+    <li><a href="#cycle">One decision cycle, with scores</a></li>
+    <li><a href="#citizens">Three citizens, six situations</a></li>
+    <li><a href="#performance">Performance and scalability</a></li>
+    <li><a href="#roadmap">Implementation roadmap</a></li>
+    <li><a href="#risks">Risks and tradeoffs</a></li>
+    <li><a href="#mvp">Recommended minimum viable brain</a></li>
+  </ol>
+</nav>
+
+<!-- ============================== 1 ============================== -->
+<section id="summary">
+  <div class="section-head"><span class="section-no">1</span><h2>Executive summary</h2></div>
+
+  <p>The Citizen Brain is a small, layered system that runs on the server and keeps each civilian's thinking cheap and explainable. It aims past CrimeLogic V2's basic pedestrians by giving every civilian a reason to be on the street, a believable way of noticing things, and reactions that differ by personality, while staying inside a modest performance budget.</p>
+
+  <ol>
+    <li><strong>Everyone is going somewhere.</strong> Each civilian spawns with a short trip: out of a door, one to three stops at places that advertise activities (a shop window, a bench, a bus stop), then out through another door. Purpose replaces wandering, and trips give every civilian a natural two-to-six-minute lifespan.</li>
+    <li><strong>They notice gradually.</strong> Vision builds awareness over time from distance, angle, how a person moves and what the civilian is doing. A texting commuter notices you at 6 studs, an alert pensioner at 27. Hearing is event-driven: thefts, shouts and sirens reach nearby civilians after a human reaction delay.</li>
+    <li><strong>Five modes, scored choices.</strong> A tiny state machine decides what kind of situation the civilian is in: Ambient, Alert, Panic, Victim or Recover. Inside each mode, utility scoring picks among four to eight actions using the civilian's personality. Modes keep behavior predictable and debuggable. Scoring makes individuals differ.</li>
+    <li><strong>Memory forgets on purpose.</strong> Every memory entry has a time limit. The only player-linked data is a live track that dies 7 to 9 seconds after the civilian loses sight of the suspect, plus an incident note that holds a place and a heading but no reference to the player. Both are deleted when the incident closes. Nothing survives despawn.</li>
+    <li><strong>The server thinks, clients perform.</strong> One central scheduler staggers brain updates at 0.5 to 4 Hz depending on mode and distance. Clients play animations, head turns, phone props and speech barks from a handful of replicated attributes.</li>
+  </ol>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>At a glance</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Top-level modes</td><td>5: Ambient, Alert, Panic, Victim, Recover</td></tr>
+        <tr><td>Behaviors</td><td>25 body actions (20 in the MVP) plus 4 attention overlays</td></tr>
+        <tr><td>Personality</td><td>5 traits, generated from 3 archetypes with ±0.15 spread</td></tr>
+        <tr><td>Think rate</td><td class="num">0.5–4 Hz per civilian, plus event wake-ups</td></tr>
+        <tr><td>Population</td><td>6–12 on today's map; path to 40+ with LOD tiers</td></tr>
+        <tr><td>Player-linked memory</td><td>Live track: 6.8–8.8 s after losing sight. Incident note: until handed to police or the incident closes, hard cap 120 s</td></tr>
+        <tr><td>Persistence</td><td>None. No DataStore or MemoryStore access at all</td></tr>
+        <tr><td>Paid AI services</td><td>None</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rule">
+    <svg class="roundel" viewBox="0 0 48 48" aria-hidden="true">
+      <circle class="disc" cx="24" cy="24" r="20" stroke-width="6"/>
+      <path class="eye" d="M12 24c3.5-5 7.5-7.5 12-7.5s8.5 2.5 12 7.5c-3.5 5-7.5 7.5-12 7.5S15.5 29 12 24z" stroke-width="2.2"/>
+      <circle class="pupil" cx="24" cy="24" r="3.4"/>
+      <path class="slash" d="M10.5 10.5 L37.5 37.5" stroke-width="5"/>
+    </svg>
+    <div>
+      <h3>No recognition, enforced by construction</h3>
+      <p>The rule doesn't rely on anyone remembering it. Brains never receive a Player, UserId, name or appearance. They only see anonymous observations. Live tracks use one-off handles that can't be matched across time or across civilians. All incident data is deleted on a fixed schedule, and nothing persists. Details and tests are in <a href="#norecognition">2.6</a>.</p>
+    </div>
+  </div>
+
+  <p><strong>Deliberately left out:</strong> GOAP or HTN planners, behavior-tree frameworks, Sims-style needs, crowd-simulation algorithms, language models, per-player reputation and any persistence. Section <a href="#risks">8</a> explains why each would cost more than it shows on screen.</p>
+  <p><strong>Recommended first build:</strong> milestones M1 to M4, which together form the minimum viable brain in section <a href="#mvp">9</a>. It runs on today's small map.</p>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section id="architecture">
+  <div class="section-head"><span class="section-no">2</span><h2>Complete modular architecture</h2></div>
+  <p>Diagram <a href="#diagram-a">A</a> shows every module and how data flows between them. This section explains each one: what it owns, what it reads and writes, and how often it runs.</p>
+
+  <h3 id="techniques">2.1 Which techniques earn their place</h3>
+  <p>The test for each technique was simple: does a player see the difference? If not, it doesn't go in.</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Technique</th><th>Verdict</th><th>Role in MAGALO</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Hierarchical state machine</td><td><strong>Use, kept tiny</strong></td><td>5 top-level modes. Sub-steps only inside Victim and Panic.</td><td>Hard guarantees (a robbed civilian never keeps browsing), clean interrupts, one animation family per mode, and a debug label you can read at a glance.</td></tr>
+        <tr><td>Utility AI</td><td><strong>Use, inside modes only</strong></td><td>4–8 candidate actions per mode, each scored by 2–3 considerations and personality weights.</td><td>Individuality without per-character scripts. Scoring only within a mode prevents accidents like "browsing outscored fleeing".</td></tr>
+        <tr><td>Goal-oriented behavior</td><td><strong>Use as trips and activity scripts. No planner.</strong></td><td>Trip goal → stops → short authored step lists.</td><td>Civilian plans are 2–4 known steps. A planner adds search cost and odd plans for no visible gain.</td></tr>
+        <tr><td>Lightweight memory</td><td><strong>Use</strong></td><td>Fixed-size blackboard, a time limit on every entry, incident-scoped tracks.</td><td>Enough for "something happened over there" and "I was robbed". Bounded by construction.</td></tr>
+        <tr><td>Perception</td><td><strong>Use</strong></td><td>Periodic vision with awareness build-up, event-driven hearing.</td><td>The biggest single driver of believability. It also gives players readable stealth rules.</td></tr>
+        <tr><td>Personality</td><td><strong>Use</strong></td><td>5 traits turned into spawn-time parameters.</td><td>Computed once, read as plain numbers. Cheap.</td></tr>
+        <tr><td>Needs and motivation</td><td><strong>Light</strong></td><td>Trip purpose plus two small drives: restlessness and social urge.</td><td>Players see a civilian for 2–6 minutes. Hunger or energy simulation would never be noticed.</td></tr>
+        <tr><td>Navigation</td><td><strong>Use</strong></td><td>Authored pedestrian graph with A*. PathfindingService only for off-graph moves.</td><td>Keeps people on pavements and crossings, and costs microseconds rather than milliseconds.</td></tr>
+        <tr><td>Event-driven reactions</td><td><strong>Use</strong></td><td>Stimulus Bus and Incident Service.</td><td>Immediate reactions without polling.</td></tr>
+        <tr><td>Behavior trees</td><td>Skip</td><td></td><td>Would duplicate the modes plus utility, add framework code, and still need utility nodes for variety.</td></tr>
+        <tr><td>GOAP or HTN planners</td><td>Skip</td><td></td><td>See goal-oriented behavior above.</td></tr>
+        <tr><td>Crowd simulation (RVO, flow fields)</td><td>Skip for now</td><td></td><td>Sidestepping plus no citizen-to-citizen collision is enough at 6–40 civilians.</td></tr>
+        <tr><td>Emotion models (OCC, PAD)</td><td>Skip</td><td>Two values, Alertness and Fear, plus a slow Shaken value.</td><td>Players can read fear and alertness. They can't read eight emotion axes.</td></tr>
+        <tr><td>Language models, generated dialogue</td><td>Skip</td><td>Authored bark lines.</td><td>Latency, cost and moderation risk, and a model could improvise a line that implies recognition.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="onepass">2.2 The brain in one pass</h3>
+  <p>Your example, traced through the modules. A civilian is walking to a shop and a disturbance happens ahead.</p>
+  <ol>
+    <li><strong>Ambient.</strong> The Activity Runner is executing <code>GoTo(newsagent)</code>, step 2 of the trip. Locomotion follows a pedestrian-graph route.</li>
+    <li><strong>Sense.</strong> The Stimulus Bus pushes a theft event to everyone in range. The vision tick confirms line of sight, so the Perception Gateway gives this civilian a live track on the suspect, labelled with the incident.</li>
+    <li><strong>React.</strong> The event outranks the running action, so the brain wakes after its personal reaction delay of 0.3–0.8 s. Nobody snaps round on the same frame.</li>
+    <li><strong>Appraise.</strong> Fear and Alertness rise using the threat formula. The mode machine moves Ambient → Alert, or straight to Panic if Fear crosses the civilian's threshold while the danger is close.</li>
+    <li><strong>Choose.</strong> Utility scores the Alert actions with this civilian's traits: Observe, Move away, Call 999, Ignore and so on.</li>
+    <li><strong>Interrupt.</strong> The <code>GoTo</code> stops at its next interrupt point. The trip remembers where it was.</li>
+    <li><strong>Act.</strong> Say Observe wins. Locomotion moves to a standoff point 12–22 studs away, Presentation sets <code>Pose = Watching</code> and the head follows the disturbance.</li>
+    <li><strong>Settle.</strong> The suspect leaves. The live track dies when the lose-track window expires, Alertness decays, and the mode returns to Ambient (or to Recover after a panic).</li>
+    <li><strong>Resume.</strong> Utility picks Resume trip, or Go home if the civilian is shaken. The civilian walks on to the newsagent, or heads for the nearest exit.</li>
+  </ol>
+
+  <h3 id="modules">2.3 Identity, goals and perception</h3>
+
+  <h4>Identity and personality</h4>
+  <p>Each civilian is generated at spawn from an <strong>archetype</strong>: a mean trait vector with ±0.15 spread, a walking speed range, a phone habit, a trip urgency, preferred activities and a bark voice. The MVP ships three archetypes: commuter, local shopper and pensioner. Students, workers on a break and tourists can come later. Traits run from 0 to 1: <strong>Confidence, Caution, Sociability, Curiosity, Awareness</strong>. They're turned into parameters once, at spawn:</p>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Parameter</th><th>Formula</th><th>Range</th></tr></thead>
+      <tbody>
+        <tr><td>Vision radius</td><td><code>40 + 30 × Awareness</code> studs</td><td class="num">40–70</td></tr>
+        <tr><td>Field of view</td><td><code>110° + 40° × Awareness</code></td><td class="num">110–150°</td></tr>
+        <tr><td>Attentiveness</td><td><code>(0.7 + 0.6 × Awareness) × activity</code>; phone 0.4, chatting 0.6, browsing 0.7</td><td class="num">0.28–1.3</td></tr>
+        <tr><td>Reaction delay</td><td><code>0.6 − 0.4 × Awareness</code> s, × 1.5 on the phone</td><td class="num">0.2–0.9 s</td></tr>
+        <tr><td>Fear gain</td><td><code>1.4 − 0.8 × Confidence</code></td><td class="num">0.6–1.4</td></tr>
+        <tr><td>Panic enter / exit</td><td><code>0.50 + 0.25 × Confidence</code> / enter − 0.25</td><td class="num">0.50–0.75</td></tr>
+        <tr><td>Fear half-life</td><td><code>6 + 18 × Caution</code> s, halved with police within 30 studs</td><td class="num">6–24 s</td></tr>
+        <tr><td>Alertness half-life</td><td><code>4 + 6 × Caution</code> s</td><td class="num">4–10 s</td></tr>
+        <tr><td>Personal space</td><td><code>3 + 3 × Caution</code> studs</td><td class="num">3–6</td></tr>
+        <tr><td>Observe standoff</td><td><code>22 − 10 × Curiosity</code> studs</td><td class="num">12–22</td></tr>
+        <tr><td>Lose-track window</td><td><code>6 + 4 × Awareness</code> s</td><td class="num">6–10 s</td></tr>
+        <tr><td>Shaken duration</td><td><code>120 + 180 × Caution</code> s</td><td class="num">2–5 min</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>Varied but not random.</strong> Three mechanisms keep outcomes from being completely predictable without making them silly. A score jitter of ×0.9–1.1 is drawn once per decision episode (on a mode change or a new stimulus), never per tick. When the top two scores are within 10%, the civilian picks between them weighted by score. Each civilian has its own seeded <code>Random</code>, so any odd behavior can be replayed exactly.</p>
+  <p>Civilians have no names or display names. The names in section <a href="#citizens">5</a> exist only in this document.</p>
+
+  <h4>Agenda: needs and goals</h4>
+  <ul>
+    <li><strong>Trips.</strong> Origin portal → 1–3 stops → exit portal, generated at spawn. Stops are chosen from POI adverts by archetype preference × distance falloff × free slot × variety (no activity type repeats within a trip).</li>
+    <li><strong>Two light drives</strong> fill the gaps. <em>Restlessness</em> rises while idle and eventually moves the civilian on, or gets the phone out. <em>Social urge</em>, driven by Sociability, starts a chat when another willing civilian is at a chat spot.</li>
+    <li><strong>Points of interest (POIs)</strong> are tagged parts with attributes: <code>Activity</code>, <code>Slots</code>, <code>DurationMin/Max</code>, <code>Advertises</code> (errand, leisure, rest, social), <code>Node</code>, <code>StandPoint</code> and <code>LookAt</code> attachments, <code>Indoor</code> and <code>Shelter</code>.</li>
+    <li><strong>On today's map:</strong> shop window (browse 8–20 s), shop door (enter, hidden 15–45 s, then continue or despawn), bench (sit 20–60 s), bus stop (wait 15–40 s), cash machine (6–10 s), wall spot (lean or phone, 10–30 s) and chat spot (pairs, 6–15 s). Doorways double as shelters in a panic.</li>
+    <li><strong>Fixtures</strong> come later: anchored roles such as a shopkeeper, run on an <code>AnimationController</code> rig with no Humanoid, as Roblox recommends for static NPCs.</li>
+    <li><strong>Why this scales to the future city:</strong> a new street only adds tagged POIs and pedestrian-graph nodes. The brain code doesn't change.</li>
+  </ul>
+
+  <h4>Perception</h4>
+  <p>The shared <strong>Perception Gateway</strong> turns world state into anonymous observations. Its candidates are player characters, police officers and, for social use only, other civilians. It never passes on a Player object, UserId, name or appearance. Each observation carries: kind (person, police or citizen), position, velocity, distance, whether it's in view, approaching me, sprinting, how long it has lingered near me, whether it's in cover, and, only for the civilian who witnessed the act, an incident label on a live track.</p>
+  <p><strong>Vision runs periodically, on a budget.</strong> A squared-distance check runs first, then a field-of-view check (skipped inside a 6-stud peripheral bubble, where awareness is 360° at half strength), then a line-of-sight raycast from head to upper torso. Visible people build awareness:</p>
+  <div class="formula wide">awareness rate  = attentiveness × 1 / (1 + (d / 15)²) × angle × behavior
+behavior        : sprinting at me 2.2 · walking at me 1.3 · walking past 0.8 · standing 0.5 · crouched or in cover 0.3
+noticed         : awareness ≥ 0.35   → glance, head starts tracking
+focused         : awareness ≥ 0.70   → appraised as a possible threat
+unseen          : awareness halves every 2 s</div>
+  <p>For a player walking straight at them at 16 studs/s, the three example citizens notice at very different distances: <strong>Priya, texting, at 5.9 studs</strong>; Des at 25.1; Edith at 27.6 while walking and 21.5 while browsing a shop window. Approach from behind and nobody notices until you're inside their 6-stud bubble. That gives players a readable skill: come from behind, don't sprint, pick the phone-absorbed.</p>
+  <p><strong>Hearing is event-driven.</strong> The Stimulus Bus delivers each event to civilians within its radius using a 32-stud grid, and each recipient wakes after its own reaction delay.</p>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Stimulus</th><th>Radius</th><th>Severity</th><th>Raised by</th></tr></thead>
+      <tbody>
+        <tr><td>TheftSnatch</td><td class="num">30 studs</td><td class="num">0.6 witness · 1.0 victim</td><td>Incident Service, after TheftService validates a steal</td></tr>
+        <tr><td>Shout</td><td class="num">35</td><td class="num">0.25</td><td>A victim's or witness's bark</td></tr>
+        <tr><td>Scream</td><td class="num">45</td><td class="num">0.4</td><td>A panicking civilian</td></tr>
+        <tr><td>Panic relay</td><td class="num">18</td><td class="num">0.3, halved per hop, 2 hops max</td><td>A fleeing civilian, once per incident</td></tr>
+        <tr><td>Siren</td><td class="num">120</td><td>Alertness only</td><td>Police AI</td></tr>
+        <tr><td>PoliceArrive</td><td class="num">40</td><td>Safety: speeds fear decay</td><td>Police AI</td></tr>
+        <tr><td>Pursuit passing</td><td class="num">25</td><td class="num">0.35</td><td>Police AI, about once a second during a chase</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="state">2.4 Affect, decisions and memory</h3>
+  <h4>Affect</h4>
+  <p>Three numbers describe how a civilian feels: <strong>Alertness</strong> and <strong>Fear</strong> (0–1, fast) and <strong>Shaken</strong> (0–1, slow).</p>
+  <div class="formula wide">threat     = severity × proximity(d) × visibility × approaching × police
+proximity  = 1 / (1 + (d / 12)²)      visibility: seen 1.0, heard 0.6
+approaching: 1.5 if moving at me      police: 0.6 if an officer is within 30 studs
+Fear      ← Fear + (1 − Fear) × (1 − e^(−threat × FearGain))
+decay      : value(t) = base + (v − base) × 0.5^(Δt / halfLife), computed only when read
+Shaken     = episode × (1 − 0.5 × Confidence); robbed 1.0, panicked nearby 0.8, saw it 0.5, heard it 0.2</div>
+  <p>Decay is lazy. Values are stored with a timestamp and worked out when read, so a calm civilian costs nothing. Shaken fades linearly over the shaken duration, raises baseline fear by up to 0.15, and tilts Recover toward going home. <strong>Habituation</strong> stops players farming panic: each repeat of a low-severity alarm within 30 s adds only 0.6× as much as the one before, and sprinting near a civilian raises Alertness but never Fear.</p>
+
+  <h4>Decision making</h4>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Mode</th><th>Means</th><th>Enter when</th><th>Leave when</th><th>Think rate</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mode m-ambient">Ambient</span></td><td>Normal life</td><td>Default</td><td>A higher mode's condition is met</td><td class="num">0.5–1 Hz</td></tr>
+        <tr><td><span class="mode m-alert">Alert</span></td><td>Something is off, but I'm not in danger yet</td><td>Alertness ≥ 0.35, or a stimulus with severity ≥ 0.3</td><td>Alertness under 0.20 for 3 s and no live track</td><td class="num">2 Hz</td></tr>
+        <tr><td><span class="mode m-panic">Panic</span></td><td>I'm in danger now</td><td>Fear ≥ panic-enter <em>and</em> danger present: a threat within 20 studs, one approaching, or a new danger stimulus in the last 3 s</td><td>Fear under panic-exit <em>and</em> no threat seen for 4 s</td><td class="num">4 Hz</td></tr>
+        <tr><td><span class="mode m-victim">Victim</span></td><td>I've just been robbed</td><td>Hard event from TheftService</td><td>Shock and the chosen response have finished</td><td class="num">4 Hz</td></tr>
+        <tr><td><span class="mode m-recover">Recover</span></td><td>The danger is over</td><td>Leaving Panic or Victim</td><td>Chosen action done: back to Ambient, or out through a portal</td><td class="num">1 Hz</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The enter and exit thresholds differ (hysteresis). Panic is deliberately hard to enter, needing both fear and present danger, and hard to leave, needing both calm and safety. That is what stops flickering.</p>
+  <div class="formula wide">U(action) = W(personality) × c₁ × c₂ × c₃      each consideration is a 0–1 response curve
+running action  × 1.15 momentum
+episode jitter  × 0.9 to 1.1, drawn on mode change or new stimulus
+switch only if  : the running action finished, OR a higher-level event preempts it,
+                  OR after its minimum time a rival beats it by 20%</div>
+  <ul>
+    <li><strong>Interrupt levels:</strong> Ambient 1, Alert 2, Panic 3, Victim 4. An event preempts the running action only if its level is higher.</li>
+    <li><strong>Cooldowns:</strong> Shout 10 s, Check phone 20–40 s, Chat 60 s. Call 999, Film, Chase, Statement and Tell someone happen once per incident per civilian. Keep distance can run at most three times in a row before the civilian moves on.</li>
+    <li><strong>Role slots</strong>, issued per incident by the Incident Service: 1 chaser, 1 shouter, 2 callers, 3 filmers, 6 observers. Without them everyone does the top-scoring thing at once.</li>
+    <li><strong>Two channels.</strong> The <em>body</em> channel is exclusive and scored: walk, sit, flee. The <em>attention</em> channel is an overlay chosen by salience thresholds: head-look target, glance, nod or bark, guarding belongings. Head turns never compete with walking, which avoids a classic utility-AI failure where a civilian stops dead just to look at something.</li>
+  </ul>
+
+  <h4>Memory</h4>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Slot</th><th>Holds</th><th>Max</th><th>Lifetime</th></tr></thead>
+      <tbody>
+        <tr><td>Inbox</td><td>Pending stimuli</td><td class="num">8</td><td>Until the next think; oldest dropped first</td></tr>
+        <tr><td>Tracks</td><td>People currently in view, with awareness</td><td class="num">6</td><td>Until awareness decays to zero, about 6 s unseen</td></tr>
+        <tr><td>Live track</td><td>Opaque handle on a suspect this civilian saw act</td><td class="num">2</td><td>Lose-track window (6.8–8.8 s) · incident closed · character removed · despawn</td></tr>
+        <tr><td>Incident note</td><td>Incident id, last-seen spot, heading, time. No character reference</td><td class="num">2</td><td>Handed to police · incident closed · 120 s cap</td></tr>
+        <tr><td>Disturbance marks</td><td>"Trouble happened here": type, position, time</td><td class="num">4</td><td class="num">60 s</td></tr>
+        <tr><td>Episode</td><td>Robbed, saw a theft or saw a chase, with intensity</td><td class="num">2</td><td>Shaken duration (2–5 min) or despawn</td></tr>
+        <tr><td>Possessions</td><td><code>HasPhone</code>, <code>PhoneOut</code></td><td></td><td>This civilian's lifetime</td></tr>
+        <tr><td>Trip and cooldowns</td><td>Stops, progress, action timers</td><td class="num">~12</td><td>This civilian's lifetime</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Cleanup runs inside every think and touches only these fixed slots, so its cost can't grow.</p>
+
+  <h3 id="catalogue">2.5 Action catalogue</h3>
+  <p>Every scored action, with the exact formula used for every number in sections 4 and 5. <em>W</em> is the personality weight; the rest are considerations.</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Action</th><th>Needs</th><th>Score</th><th class="nowrap">Min time · cooldown</th></tr></thead>
+      <tbody>
+        <tr class="group"><td colspan="4">Ambient · body channel</td></tr>
+        <tr><td>Continue activity</td><td>A trip step</td><td><code>0.35</code> constant baseline</td><td>—</td></tr>
+        <tr><td>Keep distance</td><td>Someone inside personal space</td><td><code>(0.4 + 0.6·Caut) × Intrusion × Linger</code></td><td>1.5 s · 3 s, max 3 in a row</td></tr>
+        <tr><td>Face and hold</td><td>Someone within 6 studs, facing me</td><td><code>Conf·(1 − Caut) × √SocialIntrusion × Linger4 × (0.5 + Alert)</code></td><td>2 s · 20 s</td></tr>
+        <tr><td>Move on</td><td>Uneasy at a POI</td><td><code>(0.3 + 0.5·Caut) × Alert</code></td><td>— · —</td></tr>
+        <tr><td>Check phone</td><td>HasPhone</td><td><code>PhoneHabit × Restlessness × (1 − Alert)</code></td><td>6 s · 20–40 s</td></tr>
+        <tr><td>Chat</td><td>Willing partner at a chat spot</td><td><code>Soc × PartnerNear × (1 − Urgency)</code></td><td>6 s · 60 s</td></tr>
+        <tr><td>Step aside</td><td>Head-on walker within 5 studs, or a running officer</td><td><code>(1 − 0.5·Conf) × Proximity</code></td><td>0.8 s · —</td></tr>
+        <tr class="group"><td colspan="4">Attention overlays · triggered by thresholds, not scored against the body</td></tr>
+        <tr><td>Look at</td><td>Noticed tracks, disturbances</td><td>Highest salience wins; updates at most 2 Hz</td><td>—</td></tr>
+        <tr><td>Glance</td><td>A newly noticed person</td><td>Awareness crosses 0.35</td><td>— · 2 s per track</td></tr>
+        <tr><td>Acknowledge</td><td>Facing me within 8 studs</td><td><code>Soc·Conf × (1 − Alert) &gt; 0.30</code></td><td>— · 30 s</td></tr>
+        <tr><td>Guard belongings (cosmetic)</td><td>Someone close: phone goes away, bag gets clutched</td><td><code>(0.3 + 0.7·Caut) × Intrusion × (0.5 + 0.5·Alert) &gt; 0.25</code></td><td>— · 20 s</td></tr>
+        <tr class="group"><td colspan="4">Alert</td></tr>
+        <tr><td>Ignore</td><td>—</td><td><code>(0.3 + 0.7·Urgency)(1 − Cur) × (1 − 0.5·Alert) × (1 − Fear)</code></td><td>2 s · —</td></tr>
+        <tr><td>Observe</td><td>Knows where the disturbance is</td><td><code>(0.3 + 0.9·Cur) × Alert × (1 − Fear)^1.5</code></td><td>3 s · —</td></tr>
+        <tr><td>Film</td><td>HasPhone · filmer slot</td><td><code>1.6·Cur·(1 − Caut) × Alert × (1 − Fear)²</code></td><td>4 s · once</td></tr>
+        <tr><td>Call 999</td><td>HasPhone · perceived the incident · caller slot</td><td><code>(0.4 + 0.4·Caut + 0.2·Soc) × 0.6 × Certainty × (1 − 0.5·Fear)</code></td><td>6 s call · once</td></tr>
+        <tr><td>Shout</td><td>Live track · shouter slot</td><td><code>1.8·Conf²·(1 − Caut) × Alert × (1 − Fear)²</code></td><td>1.5 s · 10 s</td></tr>
+        <tr><td>Move away</td><td>—</td><td><code>(0.3 + 0.7·Caut) × (0.4 + 0.6·√Fear) × (0.5 + 0.5·Closeness)</code></td><td>Until at standoff · —</td></tr>
+        <tr><td>Chase</td><td>Live track · thief within 25 studs · chaser slot</td><td><code>1.5·Conf²·(1 − Caut) × ThiefNear × (1 − 0.6·Fear)</code></td><td>Leash 6 s / 25 studs · once</td></tr>
+        <tr><td>Give statement</td><td>Holds an incident note · officer within 25 studs</td><td><code>(0.5 + 0.3·Soc + 0.2·Conf) × Involvement × (0.7 + 0.3·Fear)</code></td><td>5 s · once</td></tr>
+        <tr class="group"><td colspan="4">Panic</td></tr>
+        <tr><td>Flee</td><td>Danger location known</td><td><code>(0.5 + 0.5·Mobility) × Fear × ThreatNear₁₅ × RouteQuality</code></td><td>2.5 s · —</td></tr>
+        <tr><td>Shelter</td><td>Shelter POI within 30 studs</td><td><code>(0.5 + 0.5·Caut) × Fear × ShelterNear₁₅</code></td><td>Until calm · —</td></tr>
+        <tr><td>Freeze</td><td>Threat within 10 studs</td><td><code>1.2·(1 − Conf) × Fear² × ThreatNear₈</code></td><td>1.5–3 s · —</td></tr>
+        <tr><td>Run to police</td><td>Officer visible, not behind the threat</td><td><code>(0.4 + 0.4·Soc) × Fear × PoliceNear</code></td><td>2 s · —</td></tr>
+        <tr class="group"><td colspan="4">Victim · after a fixed Shock of 0.6–1.2 s</td></tr>
+        <tr><td>Freeze</td><td>—</td><td><code>1.2·(1 − Conf) × Fear</code></td><td>1.5–3 s · —</td></tr>
+        <tr><td>Chase</td><td>Thief within 25 studs · chaser slot</td><td><code>1.5·Conf²·(1 − Caut) × ThiefNear × (1 − 0.6·Fear)</code></td><td>Leash 6 s / 25 studs · once</td></tr>
+        <tr><td>Get away</td><td>—</td><td><code>Mobility·(0.4 + 0.6·Caut) × Fear</code></td><td>Until 15 studs clear · —</td></tr>
+        <tr><td>Seek help</td><td>People, a shop or an officer within 30 studs</td><td><code>(0.3 + 0.5·Soc) × Fear × HelpNear</code></td><td>Until near help · —</td></tr>
+        <tr class="group"><td colspan="4">Recover</td></tr>
+        <tr><td>Catch breath</td><td>—</td><td><code>(0.5 + 0.5·Caut) × Fear</code></td><td>3 s · 15 s</td></tr>
+        <tr><td>Tell someone</td><td>A civilian within 15 studs</td><td><code>Soc × EpisodeIntensity × CitizenNear</code></td><td>6 s · once</td></tr>
+        <tr><td>Give statement</td><td>As in Alert</td><td>As in Alert</td><td>5 s · once</td></tr>
+        <tr><td>Resume trip</td><td>—</td><td><code>(0.4 + 0.6·Urgency) × (1 − Shaken) × (1 − Fear)</code></td><td>—</td></tr>
+        <tr><td>Go home</td><td>Shaken above 0</td><td><code>(0.4 + 0.6·Caut) × Shaken × (0.5 + 0.5·Fear)</code></td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Curves: <code>Near_r(d) = 1/(1 + (d/r)²)</code>; Closeness is Near₁₂; <code>ThiefNear = clamp(1 − d/25)</code>; <code>Intrusion = √clamp((space − d)/space)</code>; <code>Linger = min(1, t/1.5 s)</code>, Linger4 uses 4 s; <code>SocialIntrusion = clamp((6 − d)/6)</code>. Certainty: seen 1.0, heard 0.7. Involvement: victim 1.3, saw it 1.0, heard it 0.6. Urgency and Mobility come from the archetype. Police near a frightened person pull them in, because an officer is the safest place on the street.</p>
+
+  <h3 id="norecognition">2.6 How the no-recognition rule is enforced</h3>
+  <ol>
+    <li><strong>Identity firewall.</strong> The Perception Gateway is the only code that touches characters. Brains receive anonymous observations: position, motion, pose, distance. Never a Player, UserId, name, display name, outfit or face.</li>
+    <li><strong>One-off track handles.</strong> A live track exists only for a civilian who saw the act or was robbed. Its handle is an opaque number unique to that civilian and that sighting. Lose the suspect for longer than the window and the handle dies. A later sighting of the same player creates nothing: there is no label to re-attach. Handles can't be compared across civilians or across time.</li>
+    <li><strong>Incident notes hold places, not people.</strong> A witness can still say "they ran off that way" after losing sight, because the note keeps a position, a heading and a time. It has no character reference and no appearance, so it can't match anyone.</li>
+    <li><strong>Hard deletion points.</strong> Live track: the earliest of the lose-track window, incident closed, character removed or despawn. Incident note: handed to police, incident closed, or 120 s. This is stricter than the rule requires: the rule allows tracking until the incident ends, and the design drops the live link sooner so that a long chase can't produce a "that's them again" moment.</li>
+    <li><strong>No persistence.</strong> The civilian system has no DataStore or MemoryStore access. Pooled models get fresh traits, a fresh outfit and empty memory on every spawn.</li>
+    <li><strong>The police keep their own case.</strong> Reports hand incident data to the Incident Service, which forwards it to the wanted system and police AI under their existing rules. The civilian's copy is deleted on handover. Police pursuit is never affected, because it doesn't depend on civilians remembering anything.</li>
+    <li><strong>Lines can't imply recognition.</strong> Barks are present-tense and situational: "Oi!", "Someone call the police!", "They ran off that way!". An automated lint fails the build on patterns such as "again", "remember", "last time", "that's the one" or "I know you".</li>
+    <li><strong>Tested, not trusted.</strong> A unit test asserts that after <code>IncidentClosed</code> no brain holds an Instance reference or a handle for that incident. A recognition probe has the offender and a fresh player approach the same victim 20 times each with identical movement. Reaction distributions must match within noise.</li>
+  </ol>
+  <p>Civilians can still remember their own condition. A victim stays shaken for a few minutes and has no phone. That makes them warier of <em>everyone</em>, equally, and most shaken civilians head home, so re-encounters are rare.</p>
+
+  <h3 id="navigation">2.7 Navigation</h3>
+  <ul>
+    <li><strong>PedNet, an authored pedestrian graph.</strong> 40–120 nodes cover today's map. Node kinds: pavement, corner, kerb, door or portal, POI anchor. Edge kinds and base costs: pavement 1.0, crossing 1.1, alley 1.3 (×4 for cautious civilians, ×8 when afraid), plaza 1.0, jaywalk 3.0 (only with no traffic and Caution under 0.4).</li>
+    <li><strong>Authoring.</strong> A <code>PedNet</code> folder of small anchored invisible parts with <code>CanCollide</code>, <code>CanQuery</code> and <code>CanTouch</code> off, linked by ObjectValues, with a <code>Width</code> attribute. A Studio-only visualizer draws Beams between linked nodes while you edit.</li>
+    <li><strong>Routing.</strong> A* in Luau. Edge cost = length × kind cost (from personality and mood) × dynamic cost: blocked edges ×10 for 20 s, edges near a disturbance ×5 for 60 s.</li>
+    <li><strong>Lanes.</strong> Each civilian keeps a lateral offset within the pavement width, stable for the trip, with a slight keep-left bias. When two walkers meet head-on within 5 studs both shift, and the more cautious one shifts more.</li>
+    <li><strong>Intersections.</strong> Corners connect to kerb nodes, and kerb pairs connect by crossing edges. Before stepping off, civilians do a quick "look right, look left" head turn. It's cheap and reads as very British. Signals are respected if the map has them.</li>
+    <li><strong>Last metre.</strong> POI stand points are authored to be reachable in a straight line from their node.</li>
+    <li><strong>Off-graph moves</strong> (observe standoff, chase, getting back onto the graph after being shoved) use PathfindingService through the Path Queue: at most 2 jobs in flight, at least 1 s apart per civilian, agent radius 1.5–2, height 5, no jumping or climbing. PathfindingModifier labels give Road a cost of 5 and Alley 2. <code>Path.Blocked</code> triggers a recompute only when the blocked waypoint is ahead.</li>
+    <li><strong>Flee targets come from the graph:</strong> nodes 30–70 studs away in the direction away from the threat, reached by a route that avoids the threat's radius, with shop doorways preferred. Panic never calls PathfindingService, so twelve civilians panicking at once costs nothing extra.</li>
+    <li><strong>Movement.</strong> <code>Humanoid:MoveTo</code> per graph segment, with segments short enough to finish well inside MoveTo's 8-second timeout. Arrival is detected by <code>MoveToFinished</code> plus a distance check. Roblox's current pathfinding guide drives agents with <code>Humanoid:Move</code> and a Heartbeat check instead. Either works; pick one and keep it inside Locomotion.</li>
+    <li><strong>Stuck ladder.</strong> No progress for 1.5 s while moving → sidestep 2–3 studs → re-plan from the nearest node with that edge ×10 → choose a different stop → after 10 s, teleport to the nearest node only if no player within 60 studs has line of sight; otherwise despawn when unseen.</li>
+  </ul>
+
+  <h3 id="actions">2.8 Action execution</h3>
+  <p>Activities are short step lists. Step types: <code>GoTo</code>, <code>Face</code>, <code>Loop(anim, duration)</code>, <code>Gesture</code>, <code>Bark</code>, <code>Wait</code>, <code>UsePOI</code>, <code>SetProp</code>, <code>Enter</code>, <code>Despawn</code>. Each step says whether it's an interrupt point, and a trip resumes from the last completed step. The brain never touches a Humanoid directly. Only Locomotion calls MoveTo, and only Presentation writes attributes.</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Behavior</th><th>Server does</th><th>Clients show</th></tr></thead>
+      <tbody>
+        <tr><td>Walking</td><td>GoTo along a PedNet route at a personal speed of 6–10 studs/s</td><td>Walk cycle blended by speed; glances at shop windows from the attention overlay</td></tr>
+        <tr><td>Idling</td><td>Loop an idle variant for 2–6 s at a POI or wait point</td><td>Weight shifts, watch checks, looking around</td></tr>
+        <tr><td>Using phone</td><td><code>PhoneOut = true</code>; attentiveness × 0.4</td><td>Phone prop in hand; texting or call pose</td></tr>
+        <tr><td>Browsing a shop</td><td>UsePOI(window), or Enter(door) and hide for 15–45 s</td><td>Faces the window, slow head moves, the occasional point</td></tr>
+        <tr><td>Socialising</td><td>Pairs two civilians at a chat spot, facing each other for 6–15 s</td><td>Talking gestures; a rare bubble line</td></tr>
+        <tr><td>Observing</td><td>Moves to a standoff of 12–22 studs and faces the disturbance</td><td>Arms folded or hand to mouth; when filming, phone held up sideways</td></tr>
+        <tr><td>Fleeing</td><td>Runs to a graph flee node at run speed; one bark at the start</td><td>Run cycle, look-back gesture</td></tr>
+        <tr><td>Reporting</td><td>Call 999: phone to ear for 6 s, report filed only on completion. Shout: immediate short-range alert. Statement: walk to the officer and point for 5 s</td><td>Call pose, wave, pointing toward the last-seen spot</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="contracts">2.9 Integration contracts</h3>
+  <p>These four contracts are the only places the Citizen Brain touches existing MAGALO code. The adapters are the only files that need to know your current APIs.</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Direction</th><th>Contract</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>In</td><td><code>CitizenService.OnTheft(victim, thiefCharacter, position)</code></td><td>Called by TheftService after it validates a steal. The thief character goes to the Incident Service only, never into a brain.</td></tr>
+        <tr><td>In</td><td><code>CitizenService.Stimulus(kind, position, radius)</code></td><td>Police AI raises Siren, PoliceArrive and Pursuit.</td></tr>
+        <tr><td>Out</td><td><code>WantedAdapter.Report(incidentId, kind, lastSeenSpot, heading, ageSeconds)</code></td><td>Maps civilian reports onto your wanted system and can give police AI a search hint. De-duplicated per incident.</td></tr>
+        <tr><td>Out</td><td>Attributes on each civilian model: <code>HasPhone</code>, <code>PhoneOut</code>, <code>Mode</code></td><td>TheftService can read these. An optional <code>CanBeRobbed(victim)</code> returns HasPhone and not in Shock.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Assumption: today the theft is validated on the server and the wanted system exposes some way to add a witness report. If your wanted level currently rises on "NPCs within X studs of a theft", the adapter can keep that rule, replace it with real reports, or blend the two. That's your call (<a href="#decisions">9</a>).</p>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section id="diagrams">
+  <div class="section-head"><span class="section-no">3</span><h2>Five diagrams</h2></div>
+  <p>Each diagram renders from the Mermaid source beneath it, which you can copy into GitHub, Notion or the Mermaid live editor. Mode colors match the chips used in the rest of this document.</p>
+
+  <h3 id="diagram-a">Diagram A · Complete Citizen Brain architecture</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  OBS["Player + police characters&lt;br/&gt;observable state only"]
+  THEFT["TheftService&lt;br/&gt;existing · validates steals"]
+  POLX["Police AI&lt;br/&gt;existing · sirens, arrivals"]
+  GATE["Perception Gateway&lt;br/&gt;removes identity"]
+  INC["Incident Service&lt;br/&gt;lifecycle · role slots"]
+  BUS["Stimulus Bus&lt;br/&gt;grid-based delivery"]
+  SCH["Scheduler + Population&lt;br/&gt;ticks · LOD · spawn · pool"]
+
+  subgraph BRAIN["Citizen Brain · per NPC"]
+    PER["Perception&lt;br/&gt;vision ticks · hearing events"]
+    MEM["Memory&lt;br/&gt;bounded · TTL on every entry"]
+    AFF["Affect&lt;br/&gt;Alertness · Fear · Shaken"]
+    ID["Personality&lt;br/&gt;archetype + 5 traits"]
+    MODE["Mode HFSM&lt;br/&gt;Ambient · Alert · Panic&lt;br/&gt;Victim · Recover"]
+    AG["Agenda&lt;br/&gt;trip · stops · drives"]
+    UT["Utility Selector&lt;br/&gt;body action + attention"]
+    ACT["Activity Runner&lt;br/&gt;interruptible steps"]
+    LOC["Locomotion&lt;br/&gt;MoveTo · avoid · unstick"]
+    PRS["Presentation&lt;br/&gt;replicated attributes"]
+  end
+
+  POI["POI Registry&lt;br/&gt;advertised activities"]
+  NAV["PedNet Router&lt;br/&gt;A* · lanes · Path Queue"]
+  CC["Client controller&lt;br/&gt;animation · IK · barks"]
+  OUT["Wanted + Police AI&lt;br/&gt;existing · get reports"]
+
+  OBS --&gt; GATE --&gt; PER
+  THEFT --&gt; INC --&gt; BUS
+  POLX --&gt; BUS
+  BUS --&gt; PER
+  SCH -.-&gt;|"ticks"| PER
+  PER --&gt; MEM --&gt; AFF --&gt; MODE --&gt; UT --&gt; ACT
+  ID -.-&gt;|"thresholds"| MODE
+  ID -.-&gt;|"weights"| UT
+  POI --&gt; AG --&gt; UT
+  ACT --&gt; LOC --&gt; NAV
+  ACT --&gt; PRS --&gt; CC
+  ACT --&gt;|"report via Incident Service"| OUT
+  INC -.-&gt;|"closed: purge"| MEM</pre></div>
+    <figcaption><strong>How to read it:</strong> inputs from existing systems enter at the top. The brain's main chain runs down the middle: perception → memory → affect → mode → utility → activity. Dotted lines carry parameters or control rather than data. Reports leave through the Incident Service, and an incident closing reaches back into memory to purge it.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-a">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  OBS["Player + police characters&lt;br/&gt;observable state only"]
+  THEFT["TheftService&lt;br/&gt;existing · validates steals"]
+  POLX["Police AI&lt;br/&gt;existing · sirens, arrivals"]
+  GATE["Perception Gateway&lt;br/&gt;removes identity"]
+  INC["Incident Service&lt;br/&gt;lifecycle · role slots"]
+  BUS["Stimulus Bus&lt;br/&gt;grid-based delivery"]
+  SCH["Scheduler + Population&lt;br/&gt;ticks · LOD · spawn · pool"]
+
+  subgraph BRAIN["Citizen Brain · per NPC"]
+    PER["Perception&lt;br/&gt;vision ticks · hearing events"]
+    MEM["Memory&lt;br/&gt;bounded · TTL on every entry"]
+    AFF["Affect&lt;br/&gt;Alertness · Fear · Shaken"]
+    ID["Personality&lt;br/&gt;archetype + 5 traits"]
+    MODE["Mode HFSM&lt;br/&gt;Ambient · Alert · Panic&lt;br/&gt;Victim · Recover"]
+    AG["Agenda&lt;br/&gt;trip · stops · drives"]
+    UT["Utility Selector&lt;br/&gt;body action + attention"]
+    ACT["Activity Runner&lt;br/&gt;interruptible steps"]
+    LOC["Locomotion&lt;br/&gt;MoveTo · avoid · unstick"]
+    PRS["Presentation&lt;br/&gt;replicated attributes"]
+  end
+
+  POI["POI Registry&lt;br/&gt;advertised activities"]
+  NAV["PedNet Router&lt;br/&gt;A* · lanes · Path Queue"]
+  CC["Client controller&lt;br/&gt;animation · IK · barks"]
+  OUT["Wanted + Police AI&lt;br/&gt;existing · get reports"]
+
+  OBS --&gt; GATE --&gt; PER
+  THEFT --&gt; INC --&gt; BUS
+  POLX --&gt; BUS
+  BUS --&gt; PER
+  SCH -.-&gt;|"ticks"| PER
+  PER --&gt; MEM --&gt; AFF --&gt; MODE --&gt; UT --&gt; ACT
+  ID -.-&gt;|"thresholds"| MODE
+  ID -.-&gt;|"weights"| UT
+  POI --&gt; AG --&gt; UT
+  ACT --&gt; LOC --&gt; NAV
+  ACT --&gt; PRS --&gt; CC
+  ACT --&gt;|"report via Incident Service"| OUT
+  INC -.-&gt;|"closed: purge"| MEM</pre><button type="button" class="copy" data-target="src-a">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-b">Diagram B · Citizen decision loop</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  DUE(["Scheduled think&lt;br/&gt;nextThinkAt reached"])
+  EVT(["Event&lt;br/&gt;stimulus · robbed · stuck · arrived"])
+  EVT --&gt; INB["Inbox&lt;br/&gt;max 8 · oldest dropped"]
+  INB --&gt; LVL{"Outranks the&lt;br/&gt;running action?"}
+  LVL --&gt;|"yes"| WAKE["Wake after&lt;br/&gt;reaction delay"]
+  LVL --&gt;|"no"| WAIT["Wait for the next&lt;br/&gt;scheduled think"]
+  DUE --&gt; SENSE
+  WAKE --&gt; SENSE
+  SENSE["Sense + remember&lt;br/&gt;vision scan if due · drain inbox&lt;br/&gt;update tracks · expire TTLs"]
+  SENSE --&gt; APPR["Appraise&lt;br/&gt;decay, then raise&lt;br/&gt;Alertness and Fear"]
+  APPR --&gt; MODE{"Mode threshold&lt;br/&gt;crossed?"}
+  MODE --&gt;|"yes"| SWM["Switch mode&lt;br/&gt;new jitter · no momentum"]
+  MODE --&gt;|"no"| SCORE
+  SWM --&gt; SCORE["Score the mode's actions&lt;br/&gt;U = weight × considerations&lt;br/&gt;× momentum × jitter"]
+  SCORE --&gt; COMMIT{"Keep the running&lt;br/&gt;action?"}
+  COMMIT --&gt;|"yes: not done, not beaten&lt;br/&gt;by 20% after min time"| EXEC
+  COMMIT --&gt;|"no"| SW["Stop old · release POI&lt;br/&gt;cancel path · start new"]
+  SW --&gt; EXEC["Execute&lt;br/&gt;steps drive Locomotion&lt;br/&gt;and Presentation"]
+  EXEC --&gt; RES["Reschedule&lt;br/&gt;Panic 4 Hz · Alert 2 Hz&lt;br/&gt;Ambient 0.5 to 1 Hz"]
+  RES -.-&gt; DUE
+  EXEC -.-&gt;|"every frame"| MON["Locomotion monitor&lt;br/&gt;arrival · stuck · MoveTo refresh&lt;br/&gt;raises arrived and stuck events"]</pre></div>
+    <figcaption><strong>How to read it:</strong> a think starts from the schedule or from an event that outranks the running action. Every think runs the same pipeline. Locomotion monitoring runs every frame outside the brain and raises arrival and stuck events back into the loop.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-b">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  DUE(["Scheduled think&lt;br/&gt;nextThinkAt reached"])
+  EVT(["Event&lt;br/&gt;stimulus · robbed · stuck · arrived"])
+  EVT --&gt; INB["Inbox&lt;br/&gt;max 8 · oldest dropped"]
+  INB --&gt; LVL{"Outranks the&lt;br/&gt;running action?"}
+  LVL --&gt;|"yes"| WAKE["Wake after&lt;br/&gt;reaction delay"]
+  LVL --&gt;|"no"| WAIT["Wait for the next&lt;br/&gt;scheduled think"]
+  DUE --&gt; SENSE
+  WAKE --&gt; SENSE
+  SENSE["Sense + remember&lt;br/&gt;vision scan if due · drain inbox&lt;br/&gt;update tracks · expire TTLs"]
+  SENSE --&gt; APPR["Appraise&lt;br/&gt;decay, then raise&lt;br/&gt;Alertness and Fear"]
+  APPR --&gt; MODE{"Mode threshold&lt;br/&gt;crossed?"}
+  MODE --&gt;|"yes"| SWM["Switch mode&lt;br/&gt;new jitter · no momentum"]
+  MODE --&gt;|"no"| SCORE
+  SWM --&gt; SCORE["Score the mode's actions&lt;br/&gt;U = weight × considerations&lt;br/&gt;× momentum × jitter"]
+  SCORE --&gt; COMMIT{"Keep the running&lt;br/&gt;action?"}
+  COMMIT --&gt;|"yes: not done, not beaten&lt;br/&gt;by 20% after min time"| EXEC
+  COMMIT --&gt;|"no"| SW["Stop old · release POI&lt;br/&gt;cancel path · start new"]
+  SW --&gt; EXEC["Execute&lt;br/&gt;steps drive Locomotion&lt;br/&gt;and Presentation"]
+  EXEC --&gt; RES["Reschedule&lt;br/&gt;Panic 4 Hz · Alert 2 Hz&lt;br/&gt;Ambient 0.5 to 1 Hz"]
+  RES -.-&gt; DUE
+  EXEC -.-&gt;|"every frame"| MON["Locomotion monitor&lt;br/&gt;arrival · stuck · MoveTo refresh&lt;br/&gt;raises arrived and stuck events"]</pre><button type="button" class="copy" data-target="src-b">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-c">Diagram C · Crime reaction workflow</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  AMB["AMBIENT&lt;br/&gt;on a trip · browsing · phone"]
+  AMB --&gt;|"theft seen or heard"| RD["Reaction delay 0.3 to 0.8 s&lt;br/&gt;head turns to the noise"]
+  AMB --&gt;|"robbed directly"| SHK["VICTIM · Shock&lt;br/&gt;0.6 to 1.2 s, uninterruptible"]
+  RD --&gt; APP{"Fear over panic&lt;br/&gt;threshold?"}
+  APP --&gt;|"no"| ALR["ALERT&lt;br/&gt;Ignore · Observe · Film&lt;br/&gt;Call 999 · Shout&lt;br/&gt;Move away · Chase"]
+  APP --&gt;|"yes, and danger present"| PAN["PANIC&lt;br/&gt;Flee · Shelter · Freeze&lt;br/&gt;Run to police"]
+  SHK --&gt; VCH{{"Victim chooses&lt;br/&gt;Freeze · Chase&lt;br/&gt;Get away · Seek help"}}
+  VCH --&gt;|"danger still near"| PAN
+  VCH --&gt;|"thief gone"| REC
+  ALR --&gt;|"escalation"| PAN
+  ALR --&gt;|"calm for 3 s"| AMB
+  PAN --&gt;|"calm and no threat for 4 s"| REC["RECOVER&lt;br/&gt;Catch breath · Tell someone&lt;br/&gt;Statement · Resume&lt;br/&gt;Go home"]
+  POL(["Police arrive"])
+  POL -.-&gt;|"fear fades 2× faster"| PAN
+  POL -.-&gt;|"watching feels safer"| ALR
+  POL -.-&gt;|"holds an incident note"| STM["Give statement&lt;br/&gt;point at last-seen spot"]
+  STM --&gt;|"note handed over, deleted"| REC
+  REC --&gt;|"not shaken"| RES["Resume trip"]
+  REC --&gt;|"shaken"| HOM["Go home&lt;br/&gt;exit portal · despawn"]
+  RES --&gt; AMB
+  CLS(["Incident closed"]) ==&gt;|"all citizens"| PRG["Purge tracks + notes&lt;br/&gt;for that incident"]
+  classDef calm stroke:#2e7a4f,stroke-width:3px
+  classDef alert stroke:#b07415,stroke-width:3px
+  classDef fear stroke:#b4271f,stroke-width:3px
+  classDef victim stroke:#8a4a7c,stroke-width:3px
+  classDef recover stroke:#3a6f98,stroke-width:3px
+  class AMB,RES calm
+  class ALR,RD alert
+  class PAN fear
+  class SHK,VCH victim
+  class REC,STM,HOM recover</pre></div>
+    <figcaption><strong>How to read it:</strong> borders show the mode: <span class="mode m-ambient">Ambient</span> <span class="mode m-alert">Alert</span> <span class="mode m-panic">Panic</span> <span class="mode m-victim">Victim</span> <span class="mode m-recover">Recover</span>. Escalation covers a suspect running at the civilian, a second theft or a scream nearby. Police arrival changes the numbers (faster fear decay, safer watching) and unlocks statements for anyone holding an incident note.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-c">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  AMB["AMBIENT&lt;br/&gt;on a trip · browsing · phone"]
+  AMB --&gt;|"theft seen or heard"| RD["Reaction delay 0.3 to 0.8 s&lt;br/&gt;head turns to the noise"]
+  AMB --&gt;|"robbed directly"| SHK["VICTIM · Shock&lt;br/&gt;0.6 to 1.2 s, uninterruptible"]
+  RD --&gt; APP{"Fear over panic&lt;br/&gt;threshold?"}
+  APP --&gt;|"no"| ALR["ALERT&lt;br/&gt;Ignore · Observe · Film&lt;br/&gt;Call 999 · Shout&lt;br/&gt;Move away · Chase"]
+  APP --&gt;|"yes, and danger present"| PAN["PANIC&lt;br/&gt;Flee · Shelter · Freeze&lt;br/&gt;Run to police"]
+  SHK --&gt; VCH{{"Victim chooses&lt;br/&gt;Freeze · Chase&lt;br/&gt;Get away · Seek help"}}
+  VCH --&gt;|"danger still near"| PAN
+  VCH --&gt;|"thief gone"| REC
+  ALR --&gt;|"escalation"| PAN
+  ALR --&gt;|"calm for 3 s"| AMB
+  PAN --&gt;|"calm and no threat for 4 s"| REC["RECOVER&lt;br/&gt;Catch breath · Tell someone&lt;br/&gt;Statement · Resume&lt;br/&gt;Go home"]
+  POL(["Police arrive"])
+  POL -.-&gt;|"fear fades 2× faster"| PAN
+  POL -.-&gt;|"watching feels safer"| ALR
+  POL -.-&gt;|"holds an incident note"| STM["Give statement&lt;br/&gt;point at last-seen spot"]
+  STM --&gt;|"note handed over, deleted"| REC
+  REC --&gt;|"not shaken"| RES["Resume trip"]
+  REC --&gt;|"shaken"| HOM["Go home&lt;br/&gt;exit portal · despawn"]
+  RES --&gt; AMB
+  CLS(["Incident closed"]) ==&gt;|"all citizens"| PRG["Purge tracks + notes&lt;br/&gt;for that incident"]
+  classDef calm stroke:#2e7a4f,stroke-width:3px
+  classDef alert stroke:#b07415,stroke-width:3px
+  classDef fear stroke:#b4271f,stroke-width:3px
+  classDef victim stroke:#8a4a7c,stroke-width:3px
+  classDef recover stroke:#3a6f98,stroke-width:3px
+  class AMB,RES calm
+  class ALR,RD alert
+  class PAN fear
+  class SHK,VCH victim
+  class REC,STM,HOM recover</pre><button type="button" class="copy" data-target="src-c">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-d">Diagram D · Memory lifecycle</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart LR
+  subgraph PL["Incident-scoped"]
+    TRK["Live track&lt;br/&gt;opaque handle&lt;br/&gt;weak character ref"]
+    NOTE["Incident note&lt;br/&gt;last-seen spot · heading&lt;br/&gt;time · no character ref"]
+  end
+  subgraph AN["Anonymous"]
+    STIM["Stimulus trace&lt;br/&gt;TTL 10 s"]
+    DIST["Disturbance mark&lt;br/&gt;TTL 60 s"]
+    EPI["Episode · Shaken&lt;br/&gt;fades in 2.5 to 4.5 min"]
+  end
+  subgraph SELF["Self-state"]
+    POS["Possessions&lt;br/&gt;HasPhone"]
+    PERS["Traits · outfit · trip"]
+  end
+  TRK -.-&gt;|"each sighting"| NOTE
+  TRK --&gt;|"unseen 6.8 to 8.8 s&lt;br/&gt;incident closed&lt;br/&gt;character removed"| DROP
+  NOTE --&gt;|"999 call or statement"| CASE
+  NOTE --&gt;|"handed over · closed&lt;br/&gt;120 s hard cap"| DROP
+  DROP(["DISCARDED&lt;br/&gt;nothing left that could&lt;br/&gt;match this player"])
+  CASE[["Police case&lt;br/&gt;police + wanted system&lt;br/&gt;existing rules"]]
+  STIM --&gt;|"TTL"| GONE
+  DIST --&gt;|"TTL"| GONE
+  EPI --&gt;|"fades or despawn"| GONE
+  POS --&gt;|"despawn"| GONE
+  PERS --&gt;|"despawn"| GONE
+  GONE(["Pool reset&lt;br/&gt;fresh traits, outfit&lt;br/&gt;and empty memory"])</pre></div>
+    <figcaption><strong>How to read it:</strong> only the top group ever relates to a player, and every one of its exits leads to deletion or a handover to the police case. Anonymous and self-state memory fade by time limit or vanish at despawn. A pooled model comes back with nothing.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-d">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart LR
+  subgraph PL["Incident-scoped"]
+    TRK["Live track&lt;br/&gt;opaque handle&lt;br/&gt;weak character ref"]
+    NOTE["Incident note&lt;br/&gt;last-seen spot · heading&lt;br/&gt;time · no character ref"]
+  end
+  subgraph AN["Anonymous"]
+    STIM["Stimulus trace&lt;br/&gt;TTL 10 s"]
+    DIST["Disturbance mark&lt;br/&gt;TTL 60 s"]
+    EPI["Episode · Shaken&lt;br/&gt;fades in 2.5 to 4.5 min"]
+  end
+  subgraph SELF["Self-state"]
+    POS["Possessions&lt;br/&gt;HasPhone"]
+    PERS["Traits · outfit · trip"]
+  end
+  TRK -.-&gt;|"each sighting"| NOTE
+  TRK --&gt;|"unseen 6.8 to 8.8 s&lt;br/&gt;incident closed&lt;br/&gt;character removed"| DROP
+  NOTE --&gt;|"999 call or statement"| CASE
+  NOTE --&gt;|"handed over · closed&lt;br/&gt;120 s hard cap"| DROP
+  DROP(["DISCARDED&lt;br/&gt;nothing left that could&lt;br/&gt;match this player"])
+  CASE[["Police case&lt;br/&gt;police + wanted system&lt;br/&gt;existing rules"]]
+  STIM --&gt;|"TTL"| GONE
+  DIST --&gt;|"TTL"| GONE
+  EPI --&gt;|"fades or despawn"| GONE
+  POS --&gt;|"despawn"| GONE
+  PERS --&gt;|"despawn"| GONE
+  GONE(["Pool reset&lt;br/&gt;fresh traits, outfit&lt;br/&gt;and empty memory"])</pre><button type="button" class="copy" data-target="src-d">Copy source</button></details>
+  </figure>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>After a theft at t = 0</th><th>Lives until</th><th>Typical end</th></tr></thead>
+      <tbody>
+        <tr><td>Stimulus trace</td><td>Time limit</td><td class="num">t = 10 s</td></tr>
+        <tr><td>Live track on the suspect</td><td>Earliest of: unseen for the window, incident closed, character removed, despawn</td><td class="num">Last sighting + 6.8–8.8 s</td></tr>
+        <tr><td>Incident note</td><td>Handed to police, incident closed, or the 120 s cap</td><td class="num">At the statement or 999 call</td></tr>
+        <tr><td>Disturbance mark</td><td>Time limit</td><td class="num">t = 60 s</td></tr>
+        <tr><td>Episode and Shaken</td><td>Fades over the shaken duration, or ends at despawn</td><td class="num">t = 2–5 min</td></tr>
+        <tr><td>HasPhone = false</td><td>Despawn</td><td>When the victim leaves through a portal</td></tr>
+        <tr><td>Police case</td><td>Owned by police and wanted systems, outside civilian memory</td><td>Under your existing rules</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="diagram-e">Diagram E · Multiplayer simulation architecture</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  subgraph SRV["Server · authoritative"]
+    HB["Heartbeat&lt;br/&gt;one central loop"]
+    LODM["LOD manager · 1 Hz&lt;br/&gt;Hot · Warm · Cold"]
+    SCH2["Scheduler&lt;br/&gt;due queue · 1 ms budget"]
+    BRN["Brains&lt;br/&gt;perceive · remember · decide"]
+    EXIST["Existing systems&lt;br/&gt;Theft · Police · Wanted"]
+    LOCO["Locomotion&lt;br/&gt;MoveTo per segment"]
+    NAVQ["PedNet A* + Path Queue&lt;br/&gt;max 2 pathfinding jobs"]
+    POPD["Population Director&lt;br/&gt;model pool · portals"]
+    HUMS["Server-owned Humanoids&lt;br/&gt;unused states disabled"]
+  end
+  subgraph NET["Replication"]
+    PHY["Physics&lt;br/&gt;root part motion"]
+    ATR["Attributes&lt;br/&gt;on change only"]
+    TAG["Tag + streaming&lt;br/&gt;Atomic models"]
+    BRK["Bark event&lt;br/&gt;ids · rate-limited"]
+  end
+  subgraph CLI["Each client"]
+    INP["Player input&lt;br/&gt;existing theft remote"]
+    CCTL["Citizen Client Controller&lt;br/&gt;local Animator · cleanup"]
+    VIS["Animation · head-look&lt;br/&gt;phone prop · barks · sound"]
+  end
+  HB --&gt;|"1 Hz"| LODM
+  HB --&gt;|"every frame"| SCH2
+  LODM --&gt;|"tiers"| SCH2
+  SCH2 --&gt; BRN
+  EXIST --&gt;|"thefts · sirens"| BRN
+  BRN --&gt;|"reports"| EXIST
+  BRN --&gt; LOCO --&gt; HUMS
+  BRN --&gt; NAVQ
+  POPD --&gt; HUMS
+  HUMS --&gt; PHY
+  BRN --&gt; ATR
+  POPD --&gt; TAG
+  BRN --&gt; BRK
+  PHY --&gt; CCTL
+  ATR --&gt; CCTL
+  TAG --&gt; CCTL
+  BRK --&gt; CCTL
+  CCTL --&gt; VIS
+  EXIST &lt;--&gt;|"theft request · result"| INP</pre></div>
+    <figcaption><strong>How to read it:</strong> everything that decides runs on the server under one Heartbeat connection. Replication carries only physics, attributes that change, a tag and rate-limited bark ids. Clients build animation, head turns, props and speech locally, and send nothing about civilians except the existing theft request.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-e">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  subgraph SRV["Server · authoritative"]
+    HB["Heartbeat&lt;br/&gt;one central loop"]
+    LODM["LOD manager · 1 Hz&lt;br/&gt;Hot · Warm · Cold"]
+    SCH2["Scheduler&lt;br/&gt;due queue · 1 ms budget"]
+    BRN["Brains&lt;br/&gt;perceive · remember · decide"]
+    EXIST["Existing systems&lt;br/&gt;Theft · Police · Wanted"]
+    LOCO["Locomotion&lt;br/&gt;MoveTo per segment"]
+    NAVQ["PedNet A* + Path Queue&lt;br/&gt;max 2 pathfinding jobs"]
+    POPD["Population Director&lt;br/&gt;model pool · portals"]
+    HUMS["Server-owned Humanoids&lt;br/&gt;unused states disabled"]
+  end
+  subgraph NET["Replication"]
+    PHY["Physics&lt;br/&gt;root part motion"]
+    ATR["Attributes&lt;br/&gt;on change only"]
+    TAG["Tag + streaming&lt;br/&gt;Atomic models"]
+    BRK["Bark event&lt;br/&gt;ids · rate-limited"]
+  end
+  subgraph CLI["Each client"]
+    INP["Player input&lt;br/&gt;existing theft remote"]
+    CCTL["Citizen Client Controller&lt;br/&gt;local Animator · cleanup"]
+    VIS["Animation · head-look&lt;br/&gt;phone prop · barks · sound"]
+  end
+  HB --&gt;|"1 Hz"| LODM
+  HB --&gt;|"every frame"| SCH2
+  LODM --&gt;|"tiers"| SCH2
+  SCH2 --&gt; BRN
+  EXIST --&gt;|"thefts · sirens"| BRN
+  BRN --&gt;|"reports"| EXIST
+  BRN --&gt; LOCO --&gt; HUMS
+  BRN --&gt; NAVQ
+  POPD --&gt; HUMS
+  HUMS --&gt; PHY
+  BRN --&gt; ATR
+  POPD --&gt; TAG
+  BRN --&gt; BRK
+  PHY --&gt; CCTL
+  ATR --&gt; CCTL
+  TAG --&gt; CCTL
+  BRK --&gt; CCTL
+  CCTL --&gt; VIS
+  EXIST &lt;--&gt;|"theft request · result"| INP</pre><button type="button" class="copy" data-target="src-e">Copy source</button></details>
+  </figure>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section id="cycle">
+  <div class="section-head"><span class="section-no">4</span><h2>One decision cycle, with scores</h2></div>
+  <p><strong>Edith</strong>, a 74-year-old pensioner (Confidence 0.20, Caution 0.85, Sociability 0.60, Curiosity 0.35, Awareness 0.70), is walking down the high street to the chemist at 6 studs/s. Her trip: home door → chemist → bench → home door. Derived parameters: vision 61 studs, field of view 138°, reaction delay 0.32 s, panic enter 0.55 and exit 0.30, fear half-life 21.3 s, lose-track window 8.8 s.</p>
+
+  <div class="ticks wide">
+    <article class="tick">
+      <header><time>t = 0.00 s</time><span class="mode m-ambient">Ambient</span><h4>World event: a phone is snatched 14 studs ahead</h4></header>
+      <dl class="kv">
+        <dt>Event path</dt><dd>TheftService validates the steal and calls <code>OnTheft</code>. The Incident Service opens incident #41 and keeps the suspect reference to itself. The Stimulus Bus pushes TheftSnatch (radius 30) to five civilians.</dd>
+        <dt>Gateway</dt><dd>Edith has line of sight and the snatch is inside her field of view, so she gets live track H-7, labelled #41, and an incident note (spot, heading, t = 0).</dd>
+        <dt>Interrupt</dt><dd>Event level 2 outranks her GoTo (level 1). Her next think moves to t + 0.32 s.</dd>
+      </dl>
+    </article>
+
+    <article class="tick">
+      <header><time>t = 0.32 s</time><span class="mode m-alert">Ambient → Alert</span><h4>Think: appraise and choose</h4></header>
+      <dl class="kv">
+        <dt>Sensory input</dt><dd>TheftSnatch at 14 studs, seen (visibility 1.0). H-7 at 14 studs.</dd>
+        <dt>State before</dt><dd>Ambient, GoTo(chemist) step 2 of 5, Fear 0.05, Alertness 0.05, phone in her bag.</dd>
+        <dt>Appraisal</dt><dd>threat = 0.6 × 0.42 × 1.0 = 0.254 → <strong>Fear 0.307</strong>, <strong>Alertness 0.575</strong>. Alertness ≥ 0.35, so Alert. Fear is below her 0.55 panic threshold.</dd>
+        <dt>Scores</dt><dd>
+          <ol class="scores">
+            <li class="win"><span class="a">Move away</span><span class="bar"><i style="--v:.467"></i></span><span class="n">0.467</span></li>
+            <li><span class="a">Call 999</span><span class="bar"><i style="--v:.437"></i></span><span class="n">0.437</span></li>
+            <li><span class="a">Observe</span><span class="bar"><i style="--v:.204"></i></span><span class="n">0.204</span></li>
+            <li><span class="a">Ignore</span><span class="bar"><i style="--v:.186"></i></span><span class="n">0.186</span></li>
+            <li class="off"><span class="a">Film</span><span class="bar"><i style="--v:.023"></i></span><span class="n">0.023</span></li>
+            <li class="off"><span class="a">Shout · Chase</span><span class="bar"><i style="--v:.003"></i></span><span class="n">0.003</span></li>
+          </ol>
+        </dd>
+        <dt>Chosen</dt><dd>Move away, 7% ahead of Call 999. Jitter could flip it, and both are in character.</dd>
+        <dt>Commands</dt><dd>Locomotion: GoToPoint(chemist doorway, 19 studs from the incident), walk 6. Presentation: <code>Pose = Wary</code>, <code>LookAt = H-7</code>. The GoTo(chemist) step is parked.</dd>
+      </dl>
+    </article>
+
+    <article class="tick brief">
+      <header><time>t = 0.82 – 3.32 s</time><span class="mode m-alert">Alert</span><h4>Routine thinks at 2 Hz</h4></header>
+      <p>Move away holds. It has momentum (×1.15), a 3 s minimum, and nothing beats it by 20%. Her head keeps tracking H-7.</p>
+    </article>
+
+    <article class="tick">
+      <header><time>t = 3.50 s</time><span class="mode m-alert">Alert</span><h4>Move away completes: she reached the doorway</h4></header>
+      <dl class="kv">
+        <dt>State</dt><dd>Fear 0.282, Alertness 0.462 (decayed).</dd>
+        <dt>Scores</dt><dd>
+          <ol class="scores">
+            <li class="win"><span class="a">Call 999</span><span class="bar"><i style="--v:.443"></i></span><span class="n">0.443</span></li>
+            <li><span class="a">Ignore</span><span class="bar"><i style="--v:.208"></i></span><span class="n">0.208</span></li>
+            <li><span class="a">Observe</span><span class="bar"><i style="--v:.173"></i></span><span class="n">0.173</span></li>
+            <li class="off"><span class="a">Film</span><span class="bar"><i style="--v:.020"></i></span><span class="n">0.020</span></li>
+          </ol>
+        </dd>
+        <dt>Chosen</dt><dd>Call 999. She takes a caller slot (1 of 2).</dd>
+        <dt>Commands</dt><dd>Face(street), <code>SetProp(phone)</code>, <code>Pose = PhoneCall</code>, 6 s timer. The report is filed only when the call completes.</dd>
+      </dl>
+    </article>
+
+    <article class="tick">
+      <header><time>t = 5.20 s</time><span class="mode m-panic">Alert → Panic</span><h4>Interrupt: the suspect sprints back past her at 6 studs</h4></header>
+      <dl class="kv">
+        <dt>Sensory input</dt><dd>H-7 approaching at 22 studs/s, 6 studs away. Her think runs at 5.52 s, after her reaction delay.</dd>
+        <dt>Appraisal</dt><dd>threat = 0.6 × 0.80 × 1.0 × 1.5 (approaching) = 0.720 → Fear 0.269 → <strong>0.701</strong>. That's over 0.55 with danger present, so Panic. Level 3 outranks the call's level 2.</dd>
+        <dt>Interruption</dt><dd>Call 999 is aborted 2 s into its 6 s. No report is filed, and her caller slot is released for someone else.</dd>
+        <dt>Scores</dt><dd>
+          <ol class="scores">
+            <li class="win"><span class="a">Shelter</span><span class="bar"><i style="--v:.583"></i></span><span class="n">0.583</span></li>
+            <li><span class="a">Freeze</span><span class="bar"><i style="--v:.302"></i></span><span class="n">0.302</span></li>
+            <li><span class="a">Flee</span><span class="bar"><i style="--v:.296"></i></span><span class="n">0.296</span></li>
+          </ol>
+        </dd>
+        <dt>Chosen</dt><dd>Shelter. The chemist's doorway is a shelter POI 5 studs away. No officer is visible, so Run to police isn't a candidate.</dd>
+        <dt>Commands</dt><dd>GoToPoint(doorway alcove), <code>Pose = Cower</code>, phone put away, Bark "Oh my goodness!".</dd>
+      </dl>
+    </article>
+
+    <article class="tick brief">
+      <header><time>t = 7.0 s</time><span class="mode m-panic">Panic</span><h4>The suspect rounds the corner, out of sight</h4></header>
+      <p>H-7's lose-track countdown starts (8.8 s). Her incident note keeps the last sighting: the east corner of the high street, heading east, t = 7.0.</p>
+    </article>
+
+    <article class="tick brief">
+      <header><time>t = 15.8 s</time><span class="mode m-panic">Panic</span><h4>Memory cleanup: the live track is deleted</h4></header>
+      <p>The window has expired. H-7 and its weak character reference are gone. Edith can no longer link any person to incident #41. Her note still holds a place and a heading.</p>
+    </article>
+
+    <article class="tick brief">
+      <header><time>t = 18 – 20 s</time><span class="mode m-panic">Panic</span><h4>Siren heard, then an officer arrives 18 studs away</h4></header>
+      <p>The siren raises Alertness only. With an officer within 30 studs her fear half-life halves, from 21.3 s to 10.6 s. Fear at t = 20 s is 0.452.</p>
+    </article>
+
+    <article class="tick">
+      <header><time>t = 27.3 s</time><span class="mode m-recover">Panic → Recover</span><h4>Calm and safe: choose what to do next</h4></header>
+      <dl class="kv">
+        <dt>Transition</dt><dd>Fear 0.299 is under her 0.30 exit threshold, and no threat has been seen for 20 s.</dd>
+        <dt>Scores</dt><dd>
+          <ol class="scores">
+            <li class="win"><span class="a">Give statement</span><span class="bar"><i style="--v:.569"></i></span><span class="n">0.569</span></li>
+            <li><span class="a">Go home</span><span class="bar"><i style="--v:.426"></i></span><span class="n">0.426</span></li>
+            <li><span class="a">Catch breath</span><span class="bar"><i style="--v:.277"></i></span><span class="n">0.277</span></li>
+            <li><span class="a">Resume trip</span><span class="bar"><i style="--v:.126"></i></span><span class="n">0.126</span></li>
+            <li class="off"><span class="a">Tell someone</span><span class="bar"><i style="--v:0"></i></span><span class="n">0.000</span></li>
+          </ol>
+        </dd>
+        <dt>Commands</dt><dd>GoToPoint(4 studs from the officer), Face(officer), <code>Gesture = Point</code> toward the note's spot, Bark "They ran off that way!". At completion (t ≈ 35.3 s): <code>Report(#41, Statement, east corner, heading east, age 28 s)</code>.</dd>
+        <dt>Memory</dt><dd>The note is handed over and deleted. Edith now holds nothing tied to the incident or the suspect. Nobody was within 15 studs, so Tell someone scored zero.</dd>
+      </dl>
+    </article>
+
+    <article class="tick">
+      <header><time>t = 35.3 s</time><span class="mode m-recover">Recover</span><h4>Resume an appropriate activity</h4></header>
+      <dl class="kv">
+        <dt>Scores</dt><dd>
+          <ol class="scores">
+            <li class="win"><span class="a">Go home</span><span class="bar"><i style="--v:.392"></i></span><span class="n">0.392</span></li>
+            <li><span class="a">Catch breath</span><span class="bar"><i style="--v:.183"></i></span><span class="n">0.183</span></li>
+            <li><span class="a">Resume trip</span><span class="bar"><i style="--v:.144"></i></span><span class="n">0.144</span></li>
+          </ol>
+        </dd>
+        <dt>Commands</dt><dd>Her trip is replaced: route to the nearest home portal, avoiding the incident area (×5 for 60 s) and all alleys (×4), at 90% speed while shaken.</dd>
+        <dt>Memory</dt><dd>Episode "panicked nearby" sets Shaken to 0.72, fading over 273 s. It refers to no one.</dd>
+      </dl>
+    </article>
+
+    <article class="tick brief">
+      <header><time>t ≈ 60 s and 110 s</time><span class="mode m-recover">Recover</span><h4>Incident closes, then she despawns</h4></header>
+      <p>When incident #41 closes, every civilian deletes any track or note for it; Edith has none left. She reaches her door unobserved at about 110 s and despawns: POI slots released, connections cleaned up, model back to the pool.</p>
+      <p><strong>Recognition probe:</strong> if the thief walked up to her at t = 80 s she would have no track and no note, so they would be a stranger to her. She'd be a little jumpier than at t = 0, because Shaken (0.60 by then) adds 0.09 to her baseline fear, but exactly as jumpy with any other player.</p>
+    </article>
+  </div>
+
+  <h3 id="cadence">What runs when</h3>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Cadence</th><th>What runs</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Every frame, server</td><td>Scheduler pops due brains within a 1 ms budget. Locomotion monitor checks moving Hot civilians for arrival and stuck, throttled to 15 Hz each</td><td>One Heartbeat connection in total. No per-NPC loops</td></tr>
+        <tr><td>Every frame, client</td><td>Animation; head-look IK for civilians within 50 studs</td><td>Engine-driven</td></tr>
+        <tr><td>Periodic, by tier and mode</td><td>Vision: 4 Hz (Hot, Alert or Panic), 2 Hz (Hot, Ambient), off in Warm. Thinks: Panic and Victim 4 Hz, Alert 2 Hz, Recover 1 Hz, Ambient 0.5–1 Hz, Warm 0.5 Hz</td><td>Random phase per civilian so work spreads across frames</td></tr>
+        <tr><td>1 Hz</td><td>LOD tiers, Population Director, closing stale incidents</td><td>Cheap</td></tr>
+        <tr><td>Only on events</td><td>Stimulus delivery, robbed, stuck or blocked, arrival, incident closed, character removed, POI freed, despawn</td><td>Wake early after the reaction delay</td></tr>
+        <tr><td>Lazily, when read</td><td>Fear and Alertness decay, Shaken fade, time-limit expiry</td><td>No cost while nobody asks</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section id="citizens">
+  <div class="section-head"><span class="section-no">5</span><h2>Three citizens, six situations</h2></div>
+  <p>Same code and same formulas; only the numbers on these cards differ. Every score below comes from the catalogue in <a href="#catalogue">2.5</a>. The bars use one scale, 0 to 1.</p>
+
+  <div class="trio wide">
+    <article class="who">
+      <h4>Priya <small>29 · commuter</small></h4>
+      <ol class="scores traits" aria-label="Priya's traits">
+        <li><span class="a">Confidence</span><span class="bar"><i style="--v:.55"></i></span><span class="n">0.55</span></li>
+        <li><span class="a">Caution</span><span class="bar"><i style="--v:.35"></i></span><span class="n">0.35</span></li>
+        <li><span class="a">Sociability</span><span class="bar"><i style="--v:.30"></i></span><span class="n">0.30</span></li>
+        <li><span class="a">Curiosity</span><span class="bar"><i style="--v:.25"></i></span><span class="n">0.25</span></li>
+        <li><span class="a">Awareness</span><span class="bar"><i style="--v:.20"></i></span><span class="n">0.20</span></li>
+      </ol>
+      <dl class="params">
+        <div><dt>Walk</dt><dd>10 studs/s</dd></div><div><dt>Vision</dt><dd>46 · 118°</dd></div>
+        <div><dt>Reaction</dt><dd>0.52 s (0.78 phone)</dd></div><div><dt>Panic</dt><dd>0.64 / 0.39</dd></div>
+        <div><dt>Fear half-life</dt><dd>12.3 s</dd></div><div><dt>Space</dt><dd>4.05 studs</dd></div>
+        <div><dt>Phone habit</dt><dd>0.8</dd></div><div><dt>Urgency</dt><dd>0.9</dd></div>
+      </dl>
+    </article>
+    <article class="who">
+      <h4>Des <small>46 · market trader</small></h4>
+      <ol class="scores traits" aria-label="Des's traits">
+        <li><span class="a">Confidence</span><span class="bar"><i style="--v:.85"></i></span><span class="n">0.85</span></li>
+        <li><span class="a">Caution</span><span class="bar"><i style="--v:.20"></i></span><span class="n">0.20</span></li>
+        <li><span class="a">Sociability</span><span class="bar"><i style="--v:.75"></i></span><span class="n">0.75</span></li>
+        <li><span class="a">Curiosity</span><span class="bar"><i style="--v:.65"></i></span><span class="n">0.65</span></li>
+        <li><span class="a">Awareness</span><span class="bar"><i style="--v:.55"></i></span><span class="n">0.55</span></li>
+      </ol>
+      <dl class="params">
+        <div><dt>Walk</dt><dd>8 studs/s</dd></div><div><dt>Vision</dt><dd>56.5 · 132°</dd></div>
+        <div><dt>Reaction</dt><dd>0.38 s</dd></div><div><dt>Panic</dt><dd>0.71 / 0.46</dd></div>
+        <div><dt>Fear half-life</dt><dd>9.6 s</dd></div><div><dt>Space</dt><dd>3.6 studs</dd></div>
+        <div><dt>Phone habit</dt><dd>0.4</dd></div><div><dt>Urgency</dt><dd>0.3</dd></div>
+      </dl>
+    </article>
+    <article class="who">
+      <h4>Edith <small>74 · pensioner</small></h4>
+      <ol class="scores traits" aria-label="Edith's traits">
+        <li><span class="a">Confidence</span><span class="bar"><i style="--v:.20"></i></span><span class="n">0.20</span></li>
+        <li><span class="a">Caution</span><span class="bar"><i style="--v:.85"></i></span><span class="n">0.85</span></li>
+        <li><span class="a">Sociability</span><span class="bar"><i style="--v:.60"></i></span><span class="n">0.60</span></li>
+        <li><span class="a">Curiosity</span><span class="bar"><i style="--v:.35"></i></span><span class="n">0.35</span></li>
+        <li><span class="a">Awareness</span><span class="bar"><i style="--v:.70"></i></span><span class="n">0.70</span></li>
+      </ol>
+      <dl class="params">
+        <div><dt>Walk</dt><dd>6 studs/s</dd></div><div><dt>Vision</dt><dd>61 · 138°</dd></div>
+        <div><dt>Reaction</dt><dd>0.32 s</dd></div><div><dt>Panic</dt><dd>0.55 / 0.30</dd></div>
+        <div><dt>Fear half-life</dt><dd>21.3 s</dd></div><div><dt>Space</dt><dd>5.55 studs</dd></div>
+        <div><dt>Phone habit</dt><dd>0.2</dd></div><div><dt>Urgency</dt><dd>0.4</dd></div>
+      </dl>
+    </article>
+  </div>
+
+  <h3 id="s1">Situation 1 · Walking through the city normally</h3>
+  <div class="trio wide">
+    <article class="who"><h4>Priya</h4><p>Office door → cash machine → station. Walks fast and takes the alley shortcut, which costs her ×1.2 against Edith's ×4. Her phone is out most of the way, so her attentiveness drops to 0.33. She overtakes slower walkers by shifting lanes and rarely idles.</p></article>
+    <article class="who"><h4>Des</h4><p>Market → café → newsagent → market. Nods to civilians he passes (the Acknowledge overlay). Stops for a chat if someone's at a chat spot, which is likely given Sociability 0.75 and low urgency. Browses windows on the way.</p></article>
+    <article class="who"><h4>Edith</h4><p>Home → chemist → bench → home. Keeps to the main street and looks right, then left, at every crossing. Sits on the bench for 20–60 s. Her phone stays in her bag.</p></article>
+  </div>
+
+  <h3 id="s2">Situation 2 · Approached by a player</h3>
+  <p class="scenario-setup">The player walks straight at them at 16 studs/s, then lingers 3.5 studs away, facing them. To interrupt walking, a body action must beat Continue activity with momentum by 20%: 0.35 × 1.15 × 1.2 = 0.483.</p>
+  <div class="trio wide">
+    <article class="who"><h4>Priya</h4><p>Notices at <strong>5.9 studs</strong> while texting and glances up. Keep distance scores 0.225, well short of 0.483, so she keeps walking and texting. Guard belongings reaches only 0.143–0.166 against its 0.25 trigger. She's the easiest mark on the street.</p></article>
+    <article class="who"><h4>Des</h4><p>Notices at <strong>25.1 studs</strong> and his head tracks you in. Within 8 studs and facing him, Acknowledge scores 0.367 (trigger 0.30): a nod and "Alright, mate?". Still lingering after 4 s? Face and hold climbs to <strong>0.505</strong>, past 0.483, and he turns square on: "Can I help you?".</p></article>
+    <article class="who"><h4>Edith</h4><p>Notices at <strong>27.6 studs</strong>. You're inside her 5.55-stud personal space for 2 s, so Keep distance scores <strong>0.553</strong>: she steps back and to the side. The guard-belongings overlay fires at 0.387 and she clutches her bag. Follow her for 6 s and Alertness passes 0.35: she switches to Alert and moves away toward the nearest shop.</p></article>
+  </div>
+
+  <h3 id="s3">Situation 3 · Witnessing a phone theft 14 studs away</h3>
+  <div class="trio wide">
+    <article class="who"><h4>Priya</h4>
+      <p>On her phone, she only <em>hears</em> it: the victim's shout. Threat 0.152, Fear 0.179, Alertness 0.414. She reacts after 0.78 s.</p>
+      <ol class="scores">
+        <li class="win"><span class="a">Ignore</span><span class="bar"><i style="--v:.454"></i></span><span class="n">0.454</span></li>
+        <li><span class="a">Move away</span><span class="bar"><i style="--v:.254"></i></span><span class="n">0.254</span></li>
+        <li><span class="a">Call 999</span><span class="bar"><i style="--v:.229"></i></span><span class="n">0.229</span></li>
+        <li><span class="a">Observe</span><span class="bar"><i style="--v:.162"></i></span><span class="n">0.162</span></li>
+        <li class="off"><span class="a">Film</span><span class="bar"><i style="--v:.072"></i></span><span class="n">0.072</span></li>
+      </ol>
+      <p class="why">She glances over, quickens her pace and carries on. She never saw the suspect, so she has no live track and couldn't point anyone out. Back to Ambient about 10.8 s later.</p>
+    </article>
+    <article class="who"><h4>Des</h4>
+      <p>Sees it. Fear 0.209, Alertness 0.575.</p>
+      <ol class="scores">
+        <li class="win"><span class="a">Shout</span><span class="bar"><i style="--v:.375"></i></span><span class="n">0.375</span></li>
+        <li><span class="a">Observe</span><span class="bar"><i style="--v:.358"></i></span><span class="n">0.358</span></li>
+        <li><span class="a">Call 999</span><span class="bar"><i style="--v:.339"></i></span><span class="n">0.339</span></li>
+        <li><span class="a">Chase</span><span class="bar"><i style="--v:.334"></i></span><span class="n">0.334</span></li>
+        <li><span class="a">Film</span><span class="bar"><i style="--v:.300"></i></span><span class="n">0.300</span></li>
+        <li><span class="a">Move away</span><span class="bar"><i style="--v:.211"></i></span><span class="n">0.211</span></li>
+        <li class="off"><span class="a">Ignore</span><span class="bar"><i style="--v:.101"></i></span><span class="n">0.101</span></li>
+      </ol>
+      <p class="why">"Oi!" Shout narrowly beats Observe, so in some runs he watches first. 1.5 s later, with Shout on cooldown: if the thief is 18 studs off, Call 999 (0.342) beats Observe (0.308) and Chase (0.215). If the thief ran past within 7 studs, Chase jumps to 0.552 and he gives chase on a 6 s, 25-stud leash.</p>
+    </article>
+    <article class="who"><h4>Edith</h4>
+      <p>Sees it. Fear 0.307, Alertness 0.575.</p>
+      <ol class="scores">
+        <li class="win"><span class="a">Move away</span><span class="bar"><i style="--v:.467"></i></span><span class="n">0.467</span></li>
+        <li><span class="a">Call 999</span><span class="bar"><i style="--v:.437"></i></span><span class="n">0.437</span></li>
+        <li><span class="a">Observe</span><span class="bar"><i style="--v:.204"></i></span><span class="n">0.204</span></li>
+        <li><span class="a">Ignore</span><span class="bar"><i style="--v:.186"></i></span><span class="n">0.186</span></li>
+        <li class="off"><span class="a">Film</span><span class="bar"><i style="--v:.023"></i></span><span class="n">0.023</span></li>
+      </ol>
+      <p class="why">She backs off to the chemist's doorway, then rings 999. The full trace, including an escalation, is in section <a href="#cycle">4</a>.</p>
+    </article>
+  </div>
+
+  <h3 id="s4">Situation 4 · Being robbed directly</h3>
+  <p class="scenario-setup">The thief is 2 studs away and moving at them: threat 1.459. Each victim goes through Shock (0.6–1.2 s, uninterruptible, one bark), then picks a response.</p>
+  <div class="trio wide">
+    <article class="who"><h4>Priya</h4>
+      <p>Fear 0.766. Bark: "My phone!"</p>
+      <ol class="scores">
+        <li class="win"><span class="a">Get away</span><span class="bar"><i style="--v:.467"></i></span><span class="n">0.467</span></li>
+        <li><span class="a">Freeze</span><span class="bar"><i style="--v:.414"></i></span><span class="n">0.414</span></li>
+        <li><span class="a">Seek help</span><span class="bar"><i style="--v:.207"></i></span><span class="n">0.207</span></li>
+        <li><span class="a">Chase</span><span class="bar"><i style="--v:.134"></i></span><span class="n">0.134</span></li>
+      </ol>
+      <p class="why">She hurries off toward the station, looking back. With no phone she can't call. Three seconds later she's in Recover (Fear 0.655): Catch breath 0.442 beats Go home 0.366, so she steadies herself, then heads for the station exit.</p>
+    </article>
+    <article class="who"><h4>Des</h4>
+      <p>Fear 0.668. Bark: "Oi!"</p>
+      <ol class="scores">
+        <li class="win"><span class="a">Chase</span><span class="bar"><i style="--v:.436"></i></span><span class="n">0.436</span></li>
+        <li><span class="a">Get away</span><span class="bar"><i style="--v:.313"></i></span><span class="n">0.313</span></li>
+        <li><span class="a">Seek help</span><span class="bar"><i style="--v:.270"></i></span><span class="n">0.270</span></li>
+        <li class="off"><span class="a">Freeze</span><span class="bar"><i style="--v:.120"></i></span><span class="n">0.120</span></li>
+      </ol>
+      <p class="why">He chases for up to 6 s or 25 studs, shouting, with no physical contact. Players outrun his 16 studs/s. In Recover (Fear 0.423, a passer-by nearby), Tell someone scores 0.750: "They've just nicked my phone!".</p>
+    </article>
+    <article class="who"><h4>Edith</h4>
+      <p>Fear 0.844. Bark: "Help!"</p>
+      <ol class="scores">
+        <li class="win"><span class="a">Freeze</span><span class="bar"><i style="--v:.811"></i></span><span class="n">0.811</span></li>
+        <li><span class="a">Get away</span><span class="bar"><i style="--v:.307"></i></span><span class="n">0.307</span></li>
+        <li><span class="a">Seek help</span><span class="bar"><i style="--v:.304"></i></span><span class="n">0.304</span></li>
+        <li class="off"><span class="a">Chase</span><span class="bar"><i style="--v:.004"></i></span><span class="n">0.004</span></li>
+      </ol>
+      <p class="why">She freezes, hands to her chest, for 1.5–3 s. In Recover (Fear 0.771), Go home (0.725) and Catch breath (0.713) are a near tie, so it's a coin-flip between steadying herself and heading straight home.</p>
+    </article>
+  </div>
+
+  <h3 id="s5">Situation 5 · Seeing police arrive</h3>
+  <p class="scenario-setup">This continues from situation 4. Officers within 30 studs halve fear half-life. An officer within 25 studs unlocks Give statement for anyone holding an incident note. Without an incident of their own, civilians react to sirens with Alertness only, step aside for running officers, and curious ones stop to watch, because police presence makes Observe score higher.</p>
+  <div class="trio wide">
+    <article class="who"><h4>Priya</h4><p>If an officer comes within 25 studs while she's still nearby, Give statement scores <strong>0.816</strong> against Catch breath 0.442, so she walks over and points the way the thief ran. More often police arrive about 25 s in, by which time she's 100+ studs away on her way to the station, and she doesn't come back.</p></article>
+    <article class="who"><h4>Des</h4><p>An officer arrives 13 s after the theft. Give statement scores <strong>0.916</strong> against Go home 0.193. He jogs over and points down the road: "They went that way!". His fear half-life drops from 9.6 s to 4.8 s.</p></article>
+    <article class="who"><h4>Edith</h4><p>If the officer arrives while she's still steadying herself, Give statement scores <strong>0.872</strong> and beats Go home (0.725): the officer is the safest place on the street. If she has already left, she keeps walking home.</p></article>
+  </div>
+
+  <h3 id="s6">Situation 6 · Returning to normal</h3>
+  <div class="trio wide">
+    <article class="who"><h4>Priya</h4><p>Shaken 0.725 fades over 183 s. Go home takes her to her trip's exit, the station, where she despawns. As a mere witness (situation 3) she'd be texting again within about 11 s.</p></article>
+    <article class="who"><h4>Des</h4><p>After his statement (Fear 0.126), Resume trip (0.215) beats Go home (0.168), so he carries on to the café. Shaken 0.575 fades over 156 s. Until then he walks a little faster and stays a little more alert.</p></article>
+    <article class="who"><h4>Edith</h4><p>Goes home by a route that avoids where it happened (×5 for 60 s) and every alley. Shaken 0.90 fades over 273 s, and she despawns at her door.</p></article>
+  </div>
+  <div class="note">
+    <span class="eyebrow">No recognition, checked</span>
+    <p>Once the incident closes, each victim keeps only an anonymous episode and <code>HasPhone = false</code>. No track, no note, no reference. If the offender walks up later, they're scored exactly like the stranger in situation 2, plus the general Shaken bias that applies to everyone. And because most victims head home, they rarely meet anyone again.</p>
+  </div>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section id="performance">
+  <div class="section-head"><span class="section-no">6</span><h2>Performance and scalability</h2></div>
+  <p>Brain logic is the cheap part: a think is a few dozen multiplications. The real costs are Humanoid physics, replicating moving NPCs to every client, client-side animation on phones, and pathfinding bursts. The design spends its effort there.</p>
+
+  <h3 id="budgets">6.1 Budgets</h3>
+  <p class="muted">Targets to verify in MicroProfiler and the Developer Console, not measurements.</p>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Measure</th><th>12 civilians</th><th>40 civilians</th><th>Where to read it</th></tr></thead>
+      <tbody>
+        <tr><td>Citizen system server time</td><td class="num">≤ 1.0 ms / frame avg</td><td class="num">≤ 2.5 ms / frame avg</td><td>MicroProfiler, <code>Citizen/*</code> labels</td></tr>
+        <tr><td>Brain thinks</td><td class="num">≤ 30/s calm, ≤ 60/s in an incident</td><td class="num">≤ 80/s</td><td>Debug overlay counter</td></tr>
+        <tr><td>Vision raycasts</td><td class="num">≤ 60/s</td><td class="num">≤ 200/s, max 6 per frame</td><td>Counter</td></tr>
+        <tr><td>PathfindingService jobs</td><td class="num">≤ 1/s</td><td class="num">≤ 2/s, never more than 2 in flight</td><td>Path Queue stats</td></tr>
+        <tr><td>Attribute changes</td><td class="num">≤ 25/s</td><td class="num">≤ 80/s</td><td>Counter</td></tr>
+        <tr><td>Bark events</td><td class="num">≤ 1/s</td><td class="num">≤ 3/s</td><td>Counter</td></tr>
+        <tr><td>Memory over a 30-minute soak</td><td>Flat</td><td>Flat</td><td>Developer Console → Memory</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="tiers">6.2 Simulation tiers</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Tier</th><th>When</th><th>Brain</th><th>Vision</th><th>Movement</th><th>Clients</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Hot</strong></td><td>Within 80 studs of any player, or in an active incident</td><td>0.5–4 Hz by mode</td><td>2–4 Hz with raycasts</td><td>Full; monitor at 15 Hz</td><td>Full animation, head-look, barks</td></tr>
+        <tr><td><strong>Warm</strong></td><td>80–200 studs</td><td>0.5 Hz; loud events still wake it</td><td>Off; hearing only</td><td>Full; monitor at 5 Hz</td><td>Animation only, if streamed in</td></tr>
+        <tr><td><strong>Cold</strong> (later)</td><td>Beyond 200 studs from everyone</td><td>None</td><td>None</td><td>Position advanced along its route as data; model parked in the pool</td><td>Not streamed</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>On today's small map nearly everyone is Hot or Warm. Cold matters once the city grows.</p>
+
+  <h3 id="split">6.3 Server authority, client presentation</h3>
+  <ul>
+    <li><strong>Scheduler.</strong> One Heartbeat connection drives everything. A due queue holds each brain's next think time, starting from a random phase. Each frame thinks for up to 1 ms and carries the rest over, Victim and Panic first. Event wake-ups jump the queue after the reaction delay. No per-civilian loops and no <code>while true do task.wait()</code>.</li>
+    <li><strong>Physics.</strong> Civilians are server-owned (<code>SetNetworkOwner(nil)</code>). That stops exploiters simulating or flinging them and avoids the ownership hand-off stutter when players walk close.</li>
+    <li><strong>Animation on clients.</strong> Roblox's performance guide recommends playing NPC animations on the client and creating the Animator there, because server-side NPC animation is simulated on the server and then replicated. The server template ships with no Animator and no Animate script. Each client's controller creates a local Animator when a civilian streams in, caches its tracks, and plays them from attributes. Verify early with a two-client test that animations appear on both clients and nothing replicates back.</li>
+    <li><strong>Head turns, props, speech.</strong> <code>IKControl</code> head-look within 50 studs; the phone prop welded locally; barks via <code>TextChatService:DisplayBubble</code> plus a 3D sound. Idle variations stop beyond 80 studs.</li>
+    <li><strong>Inputs.</strong> Clients send nothing about civilians except the existing theft request, which the server validates.</li>
+    <li><strong>Late joiners</strong> see the right poses because state lives in attributes, not one-off events.</li>
+  </ul>
+
+  <h3 id="network">6.4 Replication budget</h3>
+  <ul>
+    <li>Attributes change only when state changes: <code>Mode</code>, <code>Pose</code>, <code>Gesture</code>, <code>LookAtPart</code> or <code>LookAtPos</code>, <code>Prop</code>, <code>HasPhone</code>, <code>PhoneOut</code>. Look targets update at most 2 Hz and clients smooth them.</li>
+    <li>Barks go through one RemoteEvent carrying bark ids, not text, limited to one per civilian per 4 s and six per second per server.</li>
+    <li>No per-frame remotes and no server-side tweens.</li>
+    <li>Physics replication of moving civilians grows with population × clients. Community reports describe network load becoming the bottleneck with many NPCs even when script time is low, so the streaming radius and LOD tiers matter more than Luau speed.</li>
+  </ul>
+
+  <h3 id="humanoids">6.5 Humanoid setup</h3>
+  <ul>
+    <li>R15 (or R6 if mobile profiling demands it), no layered clothing, at most three accessories.</li>
+    <li>Unused states disabled: Climbing, Swimming, Flying, FallingDown, Ragdoll, GettingUp, PlatformStanding, and Seated unless benches use Seat parts. Health and name displays off.</li>
+    <li>A <code>Citizens</code> collision group that doesn't collide with itself: no clumping or gridlock. Civilians still collide with players and the world.</li>
+    <li>A fling guard resets any civilian whose velocity jumps past a threshold it didn't cause itself.</li>
+    <li>Vision rays use a <code>RaycastParams</code> collision group that ignores characters, so only walls and props block sight and no filter lists need rebuilding.</li>
+  </ul>
+
+  <h3 id="pathing">6.6 Efficient pathfinding</h3>
+  <ul>
+    <li>Routine walking uses PedNet A* in Luau over about a hundred nodes. It's fast enough to run synchronously, and results are cached by (from, to, cost profile) for 60 s.</li>
+    <li>PathfindingService is reserved for off-graph moves: at most 2 jobs in flight, 4 per second per server, 1 per second per civilian, and never during a panic. <code>ComputeAsync</code> yields, so jobs run in their own threads, and the start point is snapped to the nearest graph point first so the start is never inside geometry.</li>
+    <li>Roblox documents limits of 3,000 studs straight-line distance and possible failure beyond 20,000 nodes. These are irrelevant on today's map, but PedNet keeps long trips off PathfindingService entirely as the city grows.</li>
+  </ul>
+
+  <h3 id="population">6.7 Population, despawning and respawning</h3>
+  <ul>
+    <li><strong>Target count:</strong> 6 + 2 per active player, capped at 12 on today's map.</li>
+    <li><strong>Spawning:</strong> at portals at least 35 studs from every player and out of their line of sight, at most one spawn per 0.5 s. A door-open cosmetic on clients makes emerging look natural.</li>
+    <li><strong>Despawning:</strong> when a trip ends and nobody is watching, or after 30 s in Cold.</li>
+    <li><strong>Robbed civilians leave</strong> through Go home. Phones come back into the world through new spawns, never by restocking the same civilian.</li>
+    <li><strong>The pool</strong> is built at server start, two models per frame, with 10–12 outfits. There's no <code>ApplyDescription</code> at runtime, because frequently respawning Humanoid models is expensive.</li>
+  </ul>
+
+  <h3 id="leaks">6.8 Bounded memory and leak prevention</h3>
+  <ul>
+    <li>Each civilian owns one cleanup bag (Trove or Maid) holding every connection, timer, POI reservation and queued path request.</li>
+    <li><strong>Despawn order:</strong> cancel activity → release POI slot → cancel path jobs → clear memory and tracks → destroy the bag → park the model → reset attributes → return to pool.</li>
+    <li>Instance-keyed caches use weak keys. Global caps: 8 incidents, 256 cached paths, a 64-entry stimulus ring.</li>
+    <li>Clients clean up everything when a civilian streams out.</li>
+    <li><strong>Soak test:</strong> 500 spawn and despawn cycles; instance count, connection count and Lua heap must return to baseline.</li>
+  </ul>
+
+  <h3 id="scaling">6.9 Scaling path</h3>
+  <ol>
+    <li><strong>6–12 civilians:</strong> everyone Hot or Warm, full brains.</li>
+    <li><strong>12–40:</strong> tiers, think, raycast and path budgets with carry-over, client animation LOD.</li>
+    <li><strong>40–100+ across a bigger city:</strong> Cold civilians as data-only records walking their routes, materialized from the pool when a player approaches. Consider custom client-rendered crowds (server sends compact positions, clients drive rigs) only if profiling shows Humanoid physics or replication is the limit.</li>
+  </ol>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section id="roadmap">
+  <div class="section-head"><span class="section-no">7</span><h2>Implementation roadmap</h2></div>
+  <p>Ordered by how much each step changes what players see. M1 alone fixes "wandering phone dispensers". M1 to M4 make up the minimum viable brain. Everything works on today's map.</p>
+
+  <div class="stack wide">
+    <article class="ms" id="m1">
+      <header><span class="ms-id">M1</span><h3>Purposeful pedestrians</h3><span class="tag">Biggest visible change</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>CitizenService bootstrap, central Scheduler, model pool, cleanup bags; PedNet authoring and A*; lane offsets; POI registry with slots; trip generator; Locomotion with the stuck ladder; client controller v1 (walk, idle, sit, browse, phone, phone prop); a debug overlay above heads, gated to testers; a feature flag to switch the old spawner back on.</dd>
+        <dt>Depends on</dt><dd>Nothing. About a day of placing PedNet and POI markers on today's map.</dd>
+        <dt>Test in Studio</dt><dd>Run mode with 8 civilians and the overlay on; toggle <code>ShowPedNet</code> to see the graph; a 10-minute soak; Test → Clients and Servers with 2 players to confirm both clients see the same animation states; Device Emulator for phone layouts.</dd>
+        <dt>You should see</dt><dd>Civilians come out of doors, walk on pavements, cross at crossings, browse windows, sit, wait at the bus stop and leave through doors. Nobody wanders in circles.</dd>
+        <dt>Performance</dt><dd>One Heartbeat connection. A* costs microseconds. No PathfindingService for routine walking.</dd>
+        <dt>Done when</dt><dd>A 10-minute soak has nobody stuck for more than 3 s; POI slots and instance counts return to baseline after everyone despawns; both clients show identical states.</dd>
+      </dl>
+    </article>
+
+    <article class="ms" id="m2">
+      <header><span class="ms-id">M2</span><h3>Perception and personal space</h3><span class="tag">They notice you</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>Perception Gateway; vision with awareness build-up; the attention overlay (head-look IK, glance, acknowledge); Keep distance, Step aside, Face and hold; personality v1 with three archetypes; Guard belongings as a cosmetic only.</dd>
+        <dt>Depends on</dt><dd>M1.</dd>
+        <dt>Test in Studio</dt><dd>A gated scenario-harness command spawns each archetype at a test node. Walk at them from the front and from behind and read awareness in the overlay. Repeat with the civilian texting.</dd>
+        <dt>You should see</dt><dd>Heads turn toward you. Texting commuters notice late. Pensioners step back. Confident locals nod or square up.</dd>
+        <dt>Performance</dt><dd>Budgeted raycasts, about 60 per second at 12 civilians. MicroProfiler label <code>Citizen/Perception</code>.</dd>
+        <dt>Done when</dt><dd>Notice distances fall within ±20% of section 2.3, with no raycast budget overruns in a 4-player test.</dd>
+      </dl>
+    </article>
+
+    <article class="ms" id="m3">
+      <header><span class="ms-id">M3</span><h3>Reactive brain</h3><span class="tag">They react to trouble</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>Stimulus Bus; Affect with lazy decay; the mode machine; Utility Selector with momentum, commitment and cooldowns; Alert and Panic actions; flee via PedNet; shelter POIs; reaction delays; habituation; panic relay up to 2 hops.</dd>
+        <dt>Depends on</dt><dd>M2.</dd>
+        <dt>Test in Studio</dt><dd>The harness fires synthetic stimuli (TheftSnatch at 14 studs, Scream at 25) with fixed seeds. Compare chosen actions with section 5, then run 20 seeds to see the spread.</dd>
+        <dt>You should see</dt><dd>Staggered head turns. Some civilians stop and watch, others hurry off, panicked ones duck into doorways.</dd>
+        <dt>Performance</dt><dd>Thinks per second, about 30 when calm and 60 during an incident at 12 civilians.</dd>
+        <dt>Done when</dt><dd>Seeded runs pick the expected action at least 90% of the time (the rest are the documented near-ties), with no action switched inside its minimum time during a 30-minute soak.</dd>
+      </dl>
+    </article>
+
+    <article class="ms" id="m4">
+      <header><span class="ms-id">M4</span><h3>Crime loop integration</h3><span class="tag">Consequences without recognition</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>Incident Service (lifecycle, role slots, live tracks, incident notes, purge); the TheftService hook; the Victim mode (Shock, then Freeze, Chase, Get away or Seek help); reporting (Call 999, Shout, Give statement); WantedAdapter; police arrival effects; Recover mode and Go home trips; HasPhone handling; privacy tests.</dd>
+        <dt>Depends on</dt><dd>M3, plus your TheftService and wanted system APIs, through the adapter.</dd>
+        <dt>Test in Studio</dt><dd>With 2–3 clients, rob a civilian with witnesses at 10, 20 and 30 studs and watch reports reach the wanted system. Let the incident close. Run the recognition probe (offender and fresh player, 20 approaches each). TestEZ: after <code>IncidentClosed</code>, no brain holds an Instance or handle for that incident.</dd>
+        <dt>You should see</dt><dd>Victims shout, freeze or chase. Witnesses ring 999 or point. Police get statements. Everyone settles down, and nobody treats the thief differently afterwards.</dd>
+        <dt>Performance</dt><dd>At most 8 concurrent incidents; reports de-duplicated and rate-limited.</dd>
+        <dt>Done when</dt><dd>Privacy tests pass; the recognition probe shows no difference beyond noise; the wanted system behaves as you decide in section 9.</dd>
+      </dl>
+    </article>
+
+    <article class="ms" id="m5">
+      <header><span class="ms-id">M5</span><h3>Believability polish</h3><span class="tag">It feels alive</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>A bark library (British, present-tense, gender-neutral) with the lint test; Film; pointing; look-back while fleeing; chats between civilians; Tell someone, Run to police, Move on; idle variety; tuned role caps.</dd>
+        <dt>Depends on</dt><dd>M4.</dd>
+        <dt>Test in Studio</dt><dd>4-player playtests with recordings. Count repeated barks per 10 minutes. Ask testers whether anyone seemed to recognise them.</dd>
+        <dt>You should see</dt><dd>The street reacts like a crowd of individuals rather than a squad.</dd>
+        <dt>Performance</dt><dd>Barks rate-limited; chat pairing checked at 1 Hz.</dd>
+        <dt>Done when</dt><dd>No bark repeats within 60 s on a server, the lint passes, and testers find no recognition tell.</dd>
+      </dl>
+    </article>
+
+    <article class="ms" id="m6">
+      <header><span class="ms-id">M6</span><h3>Scale and mobile</h3><span class="tag">Holds up on a full server</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>Hot and Warm tiers; a Population Director tied to player positions; think, raycast and path budgets with carry-over; client animation LOD; a stress harness.</dd>
+        <dt>Depends on</dt><dd>M1–M4.</dd>
+        <dt>Test in Studio</dt><dd>40 civilians with 8 clients; Device Emulator plus a real low-end phone; MicroProfiler and the Developer Console (Memory, Network, ScriptProfiler).</dd>
+        <dt>You should see</dt><dd>No visible change at 12 civilians and a stable frame rate at 40.</dd>
+        <dt>Performance</dt><dd>This milestone exists to hit the budgets in 6.1.</dd>
+        <dt>Done when</dt><dd>Budgets met and a 30-minute soak shows flat memory.</dd>
+      </dl>
+    </article>
+
+    <article class="ms" id="m7">
+      <header><span class="ms-id">M7</span><h3>City expansion hooks</h3><span class="tag">Deferred until the map grows</span></header>
+      <dl class="kv">
+        <dt>What is built</dt><dd>Cold tier (data-only civilians), interiors, POI opening hours or a day-night cycle, traffic-aware crossings, fixtures such as shopkeepers, and an optional place-based tension value that fades over minutes.</dd>
+        <dt>Depends on</dt><dd>M6 and the new districts.</dd>
+        <dt>Test in Studio</dt><dd>Add a district using only PedNet nodes and POIs, and check civilians use it with no code change.</dd>
+        <dt>You should see</dt><dd>The same behavior across a bigger city.</dd>
+        <dt>Performance</dt><dd>Cold civilians cost almost nothing until materialized.</dd>
+        <dt>Done when</dt><dd>A new district works by adding map markers alone.</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<!-- ============================== 8 ============================== -->
+<section id="risks">
+  <div class="section-head"><span class="section-no">8</span><h2>Risks and tradeoffs</h2></div>
+  <p>A critical pass over my own proposal.</p>
+
+  <div class="cols wide">
+    <div>
+      <h4>Overengineering risks, and what I cut</h4>
+      <ul>
+        <li><strong>Needs simulation.</strong> Hunger and energy are invisible within a 2–6 minute life. Cut.</li>
+        <li><strong>Planners.</strong> Civilian plans are 2–4 known steps. Cut.</li>
+        <li><strong>Fine-grained personality.</strong> Nobody can tell Curiosity 0.42 from 0.47. Three archetypes with modest spread; the traits are tuning knobs, not content.</li>
+        <li><strong>Gossip and rich memory.</strong> Civilians are gone in minutes. One "Did you see that?" is enough.</li>
+        <li><strong>Realistic sound propagation.</strong> A radius is enough, with optional halving when occluded.</li>
+        <li><strong>Crowd steering (RVO).</strong> Sidestep plus no-collide works at this scale.</li>
+        <li><strong>Parallel Luau.</strong> Brains cost microseconds; the cost is in Humanoids and replication. Wait for profiling.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Impressive on paper, pointless in play</h4>
+      <ul>
+        <li>Long emotional arcs, daily schedules on a small map, civilians remembering events for an hour, lip-sync, NPC-to-NPC dialogue trees.</li>
+        <li><strong>Witnesses so sharp that theft stops being fun.</strong> Role caps, notice delays and the texting-commuter archetype keep the core loop playable. Tune toward a healthy share of approaches going unnoticed until close, and watch it in playtests.</li>
+        <li><strong>A guarded phone as a hard counter.</strong> Putting the phone away is cosmetic until you decide otherwise, because it would change theft balance.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 id="robotic">Where it could look robotic, and the fix</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Tell</th><th>Cause</th><th>Fix in this design</th></tr></thead>
+      <tbody>
+        <tr><td>Everyone turns on the same frame</td><td>Instant event delivery</td><td>Personal reaction delays of 0.3–0.8 s</td></tr>
+        <tr><td>Single-file conga lines</td><td>Shared graph routes</td><td>Lane offsets, speed variance, keep-left bias</td></tr>
+        <tr><td>Flip-flopping between two actions</td><td>Scores close together</td><td>Momentum ×1.15, minimum times, a 20% switch margin</td></tr>
+        <tr><td>Everyone films, everyone chases</td><td>Same top-scoring action</td><td>Incident role slots</td></tr>
+        <tr><td>Statues when idle</td><td>No idle layer</td><td>Idle variants, head-look, weight shifts</td></tr>
+        <tr><td>Fear switches on and off</td><td>Binary states</td><td>Awareness build-up, smooth decay, hysteresis</td></tr>
+        <tr><td>Snapping turns</td><td>Instant facing changes</td><td>Turning through movement; client-side IK smoothing</td></tr>
+        <tr><td>The same line over and over</td><td>Small bark pool</td><td>Pools per situation, 60 s per-server recent-line memory, 1 bark per civilian per 4 s</td></tr>
+        <tr><td>Walking into walls and each other</td><td>Navmesh-only movement</td><td>Authored PedNet, sidestep, no citizen-to-citizen collision</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols wide">
+    <div>
+      <h4>Pathfinding problems</h4>
+      <ul>
+        <li>Thin pavements can fail the navmesh agent radius. PedNet keeps routine walking off the navmesh.</li>
+        <li>Kerbs and small props catch Humanoids. Keep edges clear, test kerb heights, and route tall kerbs through crossings.</li>
+        <li>Doors and interiors become portals that hide or despawn civilians until M7.</li>
+        <li>Players blocking doorways or POIs: slots time out, civilians try another portal, or wait 1 s and reroute.</li>
+        <li>Starting a path inside geometry fails, so starts snap to the graph first.</li>
+        <li>Pathfinding bursts during mass panic: panic uses PedNet only.</li>
+        <li>MoveTo's 8-second timeout: short segments, re-issued as needed.</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Multiplayer edge cases</h4>
+      <ul>
+        <li><strong>Two players rob one civilian at once:</strong> TheftService locks the target; the second finds no phone.</li>
+        <li><strong>Thief resets or leaves:</strong> the character is removed, tracks drop, and the civilian-facing incident closes early. The police case follows its own rules.</li>
+        <li><strong>Several incidents together:</strong> at most 2 live tracks per civilian; appraisal takes the highest threat; role slots are per incident.</li>
+        <li><strong>Herding and blocking:</strong> Keep distance caps at 3 repeats, then Move on; the stuck ladder handles the rest.</li>
+        <li><strong>Sprinting in circles to cause panic:</strong> habituation, and sprinting alone never raises Fear.</li>
+        <li><strong>Physics griefing:</strong> server ownership plus the fling guard.</li>
+        <li><strong>Report spam:</strong> 2 caller slots per incident; the adapter de-duplicates.</li>
+        <li><strong>Crowded servers:</strong> distance culling keeps perception cheap; barks are rate-limited per server.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols wide">
+    <div>
+      <h4>Performance bottlenecks, most likely first</h4>
+      <ol>
+        <li>Humanoid physics and replication of many moving civilians.</li>
+        <li>Client animation on low-end phones.</li>
+        <li>Raycast bursts during incidents.</li>
+        <li>PathfindingService bursts.</li>
+        <li>Spawning cost, solved by pool warm-up.</li>
+        <li>Attribute churn from look targets, solved by throttling.</li>
+      </ol>
+    </div>
+    <div>
+      <h4>Defer</h4>
+      <ul>
+        <li>Interiors, day-night schedules and traffic interplay.</li>
+        <li>Fixtures, place-based tension and the Cold tier.</li>
+        <li>Filming that affects the wanted level.</li>
+        <li>Dialogue between civilians, ragdolls, parallel Luau.</li>
+        <li>Custom client-rendered crowds.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 id="loops">Keeping civilians out of loops</h3>
+  <ul>
+    <li><strong>Flee loops:</strong> after reaching a flee node, a civilian flees again only if the threat is within 25 studs and approaching. Otherwise fear decays and Panic ends.</li>
+    <li><strong>Dithering:</strong> minimum times, momentum and the 20% switch margin.</li>
+    <li><strong>Trip loops:</strong> no repeated activity type, at most 3 stops, and a 6-minute trip limit that ends at an exit.</li>
+    <li><strong>Stuck loops:</strong> the four-rung ladder ends in an unseen teleport or a despawn.</li>
+    <li><strong>Contagion loops:</strong> each civilian relays an incident once, for at most 2 hops, at half intensity per hop.</li>
+    <li><strong>Personal-space ping-pong:</strong> 3 repeats, then Move on.</li>
+    <li><strong>Chase and report loops:</strong> once per incident per civilian, plus slots.</li>
+    <li><strong>POI deadlocks:</strong> slots expire at their maximum duration plus 10 s and are released on interrupt and despawn.</li>
+  </ul>
+
+  <h3 id="tradeoffs">Tradeoffs I'm choosing deliberately</h3>
+  <ul>
+    <li><strong>Authored PedNet</strong> costs map-authoring time but buys cheap, reliable, art-directable flow. Pure navmesh would be less work and look worse.</li>
+    <li><strong>Hand-tuned numbers</strong> need playtesting. The scenario harness and seeded runs make tuning quick.</li>
+    <li><strong>Trip lifetimes</strong> mean you rarely see the same civilian twice. That's good for performance and for the no-recognition rule, at the cost of street "regulars".</li>
+    <li><strong>Server-owned Humanoids</strong> are simpler and physical, but replication cost caps population. The Cold tier, and later client-rendered crowds, are the escape hatch.</li>
+    <li><strong>Stricter forgetting</strong> means a witness can't re-identify a suspect who reappears 30 s later, even mid-incident. Police tracking is unaffected because it never depended on civilians.</li>
+  </ul>
+</section>
+
+<!-- ============================== 9 ============================== -->
+<section id="mvp">
+  <div class="section-head"><span class="section-no">9</span><h2>Recommended minimum viable brain</h2></div>
+  <p>Build M1 to M4. That's the smallest version that changes how MAGALO feels, and it runs on today's map.</p>
+
+  <div class="cols wide">
+    <div>
+      <h4>Server services</h4>
+      <ul>
+        <li>One-loop Scheduler; Population Director with a model pool</li>
+        <li>PedNet with A*; POI registry for windows, benches, bus stop, doors and doorway shelters</li>
+        <li>Perception Gateway; Stimulus Bus with TheftSnatch, Shout, Siren and PoliceArrive, and Panic relay</li>
+        <li>Incident Service with live tracks, notes, role slots and purge; WantedAdapter</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Brain</h4>
+      <ul>
+        <li>3 archetypes, 5 traits; Alertness, Fear and Shaken</li>
+        <li>5 modes; 20 body actions and 4 overlays</li>
+        <li>Bounded memory with deletion points as in 2.6</li>
+        <li>Deferred to M5: Film, Chat, Tell someone, Run to police, Move on</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Client</h4>
+      <ul>
+        <li>About 14 animations: 3 walk styles, run, 3 idles, sit, browse, text, call, wary, cower, point</li>
+        <li>Head-look IK, phone prop, about 40 bubble barks with sounds</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Acceptance</h4>
+      <ul>
+        <li>The six situations in section 5 reproduce in the scenario harness</li>
+        <li>Privacy tests and the recognition probe pass</li>
+        <li>A 30-minute, 4-player soak: nobody stuck for more than 3 s, flat memory, budgets met</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 id="decisions">Decisions I need from you</h3>
+  <ol>
+    <li><strong>Architecture:</strong> approve modes plus utility plus trips, with no planners, behavior trees or language models.</li>
+    <li><strong>Forgetting:</strong> approve live tracks ending 7–9 s after losing sight, even while the incident is still active.</li>
+    <li><strong>Theft balance:</strong> should awareness or a guarded phone make theft harder? Default: no, it stays cosmetic.</li>
+    <li><strong>Wanted system:</strong> should civilian reports replace any current "NPCs nearby" rule, add to it, or only guide police search? Default: add to it through the adapter, keeping today's rules.</li>
+    <li><strong>Victim chases:</strong> is a short, contact-free chase acceptable? Default: yes, 6 s or 25 studs.</li>
+    <li><strong>Map markers:</strong> may I add invisible PedNet and POI markers to the map?</li>
+  </ol>
+  <div class="note">
+    <span class="eyebrow">Before development can start</span>
+    <p>MAGALO's scripts aren't in any repository this session can reach. To build M1, I'd need the place's code as files in a repository attached to the session (a Rojo project is ideal), or at least the theft, police and wanted modules so the adapters fit your real APIs.</p>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Sources.</strong> Roblox Creator Docs: <a href="https://create.roblox.com/docs/performance-optimization/improve">Improve performance</a> (client-side NPC animation, disabling unused Humanoid states, pooling, spawning near players); <a href="https://create.roblox.com/docs/characters/pathfinding">Character pathfinding</a> (agent parameters, blocked paths, distance and node limits); references for <a href="https://create.roblox.com/docs/reference/engine/classes/PathfindingService">PathfindingService</a>, <a href="https://create.roblox.com/docs/reference/engine/classes/Path">Path</a>, <a href="https://create.roblox.com/docs/reference/engine/classes/PathfindingModifier">PathfindingModifier</a> and <a href="https://create.roblox.com/docs/reference/engine/classes/PathfindingLink">PathfindingLink</a>. Benchmark: <a href="https://www.roblox.com/games/12857753286/CrimeLogic-V2">CrimeLogic V2</a>. Community practice: DevForum threads <a href="https://devforum.roblox.com/t/handle-100-humanoids-npc/2648769">Handle 100 humanoids NPC</a>, <a href="https://devforum.roblox.com/t/npc-animation-optimization/1316172">NPC animation optimization</a> and <a href="https://devforum.roblox.com/t/client-sided-npc-pathfinding-server-calculations-client-visuals/4558654">Client-sided NPC pathfinding</a>.</p>
+  <p>Design lineage: Dave Mark's Infinite Axis Utility System (GDC AI Summit), the sensory and awareness model from <em>Thief: The Dark Project</em>, Jeff Orkin's GOAP work on <em>F.E.A.R.</em> (considered and rejected here), advertised object affordances from <em>The Sims</em>, and IO Interactive's crowd system in <em>Hitman: Absolution</em>.</p>
+</footer>
+
+</div>
+
+<a class="tolink" href="#contents">Contents ↑</a>
+
+<script>
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('button.copy') : null;
+  if (!btn) return;
+  var pre = document.getElementById(btn.getAttribute('data-target'));
+  if (!pre) return;
+  var text = pre.textContent;
+  function reset() { setTimeout(function () { btn.textContent = 'Copy source'; }, 1800); }
+  function selectText() {
+    var range = document.createRange(); range.selectNodeContents(pre);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { btn.textContent = 'Copied'; reset(); },
+      function () { selectText(); btn.textContent = 'Copy blocked. Text selected'; reset(); });
+  } else { selectText(); btn.textContent = 'Copy blocked. Text selected'; reset(); }
+});
+</script>

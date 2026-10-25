@@ -1,0 +1,27 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart LR
+  subgraph PL["Incident-scoped"]
+    TRK["Live track<br/>opaque handle<br/>weak character ref"]
+    NOTE["Incident note<br/>last-seen spot · heading<br/>time · no character ref"]
+  end
+  subgraph AN["Anonymous"]
+    STIM["Stimulus trace<br/>TTL 10 s"]
+    DIST["Disturbance mark<br/>TTL 60 s"]
+    EPI["Episode · Shaken<br/>fades in 2.5 to 4.5 min"]
+  end
+  subgraph SELF["Self-state"]
+    POS["Possessions<br/>HasPhone"]
+    PERS["Traits · outfit · trip"]
+  end
+  TRK -.->|"each sighting"| NOTE
+  TRK -->|"unseen 6.8 to 8.8 s<br/>incident closed<br/>character removed"| DROP
+  NOTE -->|"999 call or statement"| CASE
+  NOTE -->|"handed over · closed<br/>120 s hard cap"| DROP
+  DROP(["DISCARDED<br/>nothing left that could<br/>match this player"])
+  CASE[["Police case<br/>police + wanted system<br/>existing rules"]]
+  STIM -->|"TTL"| GONE
+  DIST -->|"TTL"| GONE
+  EPI -->|"fades or despawn"| GONE
+  POS -->|"despawn"| GONE
+  PERS -->|"despawn"| GONE
+  GONE(["Pool reset<br/>fresh traits, outfit<br/>and empty memory"])

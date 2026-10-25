@@ -1,0 +1,41 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  OBS["Player + police characters<br/>observable state only"]
+  THEFT["TheftService<br/>existing · validates steals"]
+  POLX["Police AI<br/>existing · sirens, arrivals"]
+  GATE["Perception Gateway<br/>removes identity"]
+  INC["Incident Service<br/>lifecycle · role slots"]
+  BUS["Stimulus Bus<br/>grid-based delivery"]
+  SCH["Scheduler + Population<br/>ticks · LOD · spawn · pool"]
+
+  subgraph BRAIN["Citizen Brain · per NPC"]
+    PER["Perception<br/>vision ticks · hearing events"]
+    MEM["Memory<br/>bounded · TTL on every entry"]
+    AFF["Affect<br/>Alertness · Fear · Shaken"]
+    ID["Personality<br/>archetype + 5 traits"]
+    MODE["Mode HFSM<br/>Ambient · Alert · Panic<br/>Victim · Recover"]
+    AG["Agenda<br/>trip · stops · drives"]
+    UT["Utility Selector<br/>body action + attention"]
+    ACT["Activity Runner<br/>interruptible steps"]
+    LOC["Locomotion<br/>MoveTo · avoid · unstick"]
+    PRS["Presentation<br/>replicated attributes"]
+  end
+
+  POI["POI Registry<br/>advertised activities"]
+  NAV["PedNet Router<br/>A* · lanes · Path Queue"]
+  CC["Client controller<br/>animation · IK · barks"]
+  OUT["Wanted + Police AI<br/>existing · get reports"]
+
+  OBS --> GATE --> PER
+  THEFT --> INC --> BUS
+  POLX --> BUS
+  BUS --> PER
+  SCH -.->|"ticks"| PER
+  PER --> MEM --> AFF --> MODE --> UT --> ACT
+  ID -.->|"thresholds"| MODE
+  ID -.->|"weights"| UT
+  POI --> AG --> UT
+  ACT --> LOC --> NAV
+  ACT --> PRS --> CC
+  ACT -->|"report via Incident Service"| OUT
+  INC -.->|"closed: purge"| MEM
