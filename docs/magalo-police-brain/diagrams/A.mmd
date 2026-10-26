@@ -1,0 +1,56 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  subgraph IN["Inputs"]
+    THEFT["TheftService<br/>validated steals"]
+    INC["Incident Service<br/>witness calls · statements"]
+    HEAT["Heat system<br/>existing"]
+  end
+
+  subgraph DISP["Dispatch · one per server"]
+    CASES["Case Manager<br/>one case per suspect"]
+    ESC["Escalation<br/>levels L0 to L4"]
+    ALLOC["Unit Allocator<br/>priority · ETA · approach angle"]
+  end
+
+  subgraph SQUAD["Case squad · per case"]
+    KB["Case knowledge<br/>status · LKP · confidence"]
+    ROLES["Role assigner<br/>pursuer · cutoff · searcher · holder"]
+    SEARCH["Search planner<br/>occupancy on PoliceNet"]
+  end
+
+  WORLD["Players and civilians<br/>bodies · movement · noise"]
+
+  subgraph OFF["Officer brain · per NPC"]
+    PER["Perception<br/>vision · hearing · identification"]
+    OBB["Officer blackboard<br/>own sightings · role · stamina"]
+    FSM["State machine<br/>Patrol · Respond · Investigate<br/>Pursue · Search · Arrest · Return"]
+    LOC["Navigation<br/>PoliceNet A* · path queue · unstick"]
+  end
+
+  ARREST["Arrest Service<br/>grab · restrain · confiscate"]
+  OUT["Existing systems via adapters<br/>XP ledger · apartment gate"]
+  CL["Clients<br/>animation · radio audio · HUD"]
+
+  THEFT --> CASES
+  INC -->|"reports"| CASES
+  HEAT -->|"heat tier"| ESC
+  CASES --> ESC
+  CASES --> ALLOC
+  CASES -->|"opens"| KB
+  ESC --> ROLES
+  KB --> ROLES
+  KB --> SEARCH
+  KB <-->|"radio: sightings up,<br/>briefings down after ~1 s"| OBB
+  ROLES ~~~ WORLD
+  SEARCH ~~~ WORLD
+  WORLD --> PER
+  PER --> OBB
+  ALLOC -->|"assignment"| FSM
+  ROLES -->|"role"| FSM
+  SEARCH -->|"target node"| FSM
+  OBB --> FSM
+  FSM --> LOC
+  FSM -->|"grab request"| ARREST
+  ARREST -->|"result"| OUT
+  CASES -.->|"status · outcome once"| OUT
+  FSM -->|"attributes · radio ids"| CL

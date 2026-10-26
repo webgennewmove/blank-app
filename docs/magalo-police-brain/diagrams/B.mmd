@@ -1,0 +1,38 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  PAT(["PATROL<br/>walk a beat · watch"])
+  RES["RESPOND<br/>travel to the report<br/>radio en route"]
+  INV["INVESTIGATE<br/>talk to witnesses<br/>scan the scene"]
+  PUR["PURSUE<br/>chase · cutoff · peek"]
+  SEA["SEARCH<br/>sweep · hold · inspect"]
+  ARR["ARREST<br/>grab · restrain"]
+  RET["RETURN<br/>back to beat or station"]
+  PAT -->|"assigned by dispatch"| RES
+  PAT -->|"hears a disturbance"| INV
+  PAT -->|"sees a crime, or<br/>identifies a briefed suspect"| PUR
+  RES -->|"arrived"| INV
+  RES -->|"identifies suspect en route"| PUR
+  INV -->|"suspect identified"| PUR
+  INV -->|"statement gives a heading"| SEA
+  INV -->|"no leads after 45 s"| RET
+  PUR -->|"within arrest range"| ARR
+  PUR -->|"unseen for 2.5 s"| SEA
+  SEA -->|"reacquired or found"| PUR
+  SEA -->|"search ended"| RET
+  ARR -->|"suspect broke free"| PUR
+  ARR -->|"arrest complete"| RET
+  RET -->|"back on beat"| PAT
+  classDef patrol stroke:#2e7a4f,stroke-width:3px
+  classDef respond stroke:#2f6690,stroke-width:3px
+  classDef investigate stroke:#1f7a7a,stroke-width:3px
+  classDef pursue stroke:#b4271f,stroke-width:3px
+  classDef search stroke:#6d4aa0,stroke-width:3px
+  classDef arrest stroke:#16191d,stroke-width:3px
+  classDef ret stroke:#7a828c,stroke-width:3px
+  class PAT patrol
+  class RES respond
+  class INV investigate
+  class PUR pursue
+  class SEA search
+  class ARR arrest
+  class RET ret

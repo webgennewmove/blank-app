@@ -1,0 +1,1487 @@
+<title>MAGALO Police Brain</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Design blueprint for MAGALO's AI police: dispatch, perception, pursuit, coordinated search, escalation, arrest, apartment safety, multiplayer cases and a vehicle roadmap.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: long-form engineering proposal. Centered 46rem text column; diagrams, tables and score panels break out to 74rem.
+   One bold element: an enamel street-name plate as the masthead. Mode colours (ambient, alert, panic, victim, recover) are semantic and used consistently. */
+:root{
+  --bg:#f2f3ef; --surface:#ffffff; --surface-2:#e8eae4; --ink:#16191d; --ink-2:#4a525b; --rule:#d2d6ce;
+  --accent:#1d4e89; --accent-soft:#dde6f2;
+  --plate:#fbfbf7; --plate-ink:#121417; --plate-red:#b8141e; --screw:#a3a8ad; --shadow:rgba(20,24,28,.22);
+  --paper:#fbfbf8; --paper-edge:#d2d6ce; --paper-ink:#2a2f35;
+  --m-ambient:#2e7a4f; --m-alert:#9c6210; --m-panic:#b4271f; --m-victim:#7b3a6d; --m-recover:#2f6690;
+  --bar:#1d4e89; --bar-track:#e3e6df;
+  --font-display:"Archivo","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Source Sans 3","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --text:46rem; --wide:74rem;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111316; --surface:#181b1f; --surface-2:#22262c; --ink:#e7e9e4; --ink-2:#a7aeb6; --rule:#2e3339;
+    --accent:#91b7ec; --accent-soft:#1d2a3b;
+    --plate:#f1f1ea; --plate-ink:#121417; --plate-red:#b8141e; --screw:#a3a8ad; --shadow:rgba(0,0,0,.5);
+    --paper:#e9eae4; --paper-edge:#3a4047; --paper-ink:#2a2f35;
+    --m-ambient:#6cc391; --m-alert:#e2a64c; --m-panic:#f27b6f; --m-victim:#d391c4; --m-recover:#86b6df;
+    --bar:#91b7ec; --bar-track:#2a2f36;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111316; --surface:#181b1f; --surface-2:#22262c; --ink:#e7e9e4; --ink-2:#a7aeb6; --rule:#2e3339;
+  --accent:#91b7ec; --accent-soft:#1d2a3b;
+  --plate:#f1f1ea; --plate-ink:#121417; --plate-red:#b8141e; --screw:#a3a8ad; --shadow:rgba(0,0,0,.5);
+  --paper:#e9eae4; --paper-edge:#3a4047; --paper-ink:#2a2f35;
+  --m-ambient:#6cc391; --m-alert:#e2a64c; --m-panic:#f27b6f; --m-victim:#d391c4; --m-recover:#86b6df;
+  --bar:#91b7ec; --bar-track:#2a2f36;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+@media (prefers-reduced-motion: no-preference){html{scroll-behavior:smooth}}
+body{background:var(--bg);color:var(--ink);font:400 1.0625rem/1.62 var(--font-body)}
+.page{padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:2.5rem 6rem}
+.page > header,.page > nav{max-width:var(--text);margin-inline:auto}
+.page > nav{margin-top:2rem}
+.page > section,.page > footer{max-width:var(--wide);margin-inline:auto}
+.page > section > *,.page > footer > *{max-width:var(--text);margin-inline:auto}
+.page > section > .wide{max-width:var(--wide)}
+.page > section > * + *{margin-top:1rem}
+h1,h2,h3,h4{font-family:var(--font-display);text-wrap:balance;line-height:1.15;margin:0}
+h2{font-size:clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);font-weight:760;font-stretch:82%}
+h3{font-size:1.3rem;font-weight:700;font-stretch:88%}
+.page > section > h3{margin-top:2.4rem}
+.page > section > h4{margin-top:1.8rem}
+h4{font-size:1.06rem;font-weight:700;font-stretch:94%}
+p{margin:0}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+strong{font-weight:700}
+ul,ol{margin:0;padding-left:1.3rem}
+li + li{margin-top:.35rem}
+code{font-family:var(--font-mono);font-size:.86em;background:var(--surface-2);padding:.06em .32em;border-radius:4px}
+.eyebrow{font:600 .72rem/1.3 var(--font-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.muted{color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Masthead */
+.masthead{display:grid;gap:1.4rem;justify-items:start}
+.plate{display:inline-block;background:var(--plate);border-radius:12px;padding:.5rem;box-shadow:0 1px 0 var(--shadow),0 14px 28px -18px var(--shadow);max-width:100%}
+.plate-inner{position:relative;border:3px solid var(--plate-ink);border-radius:7px;padding:.85rem clamp(1.4rem, 4vw, 2.6rem) .7rem;text-align:center}
+.plate-inner::before,.plate-inner::after{content:"";position:absolute;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--screw)}
+.plate-inner::before{left:.45rem}.plate-inner::after{right:.45rem}
+.postcode{position:absolute;top:.4rem;left:.75rem;font:800 .8rem/1 var(--font-display);font-stretch:90%;color:var(--plate-red);letter-spacing:.04em}
+.plate h1{color:var(--plate-ink);font-weight:820;font-stretch:76%;font-size:clamp(2.2rem, 1.2rem + 5.2vw, 4.4rem);letter-spacing:.035em;text-transform:uppercase;line-height:1}
+.borough{display:block;margin-top:.4rem;font:760 clamp(.7rem, .58rem + .5vw, .95rem)/1.2 var(--font-display);font-stretch:92%;color:var(--plate-red);letter-spacing:.16em;text-transform:uppercase}
+.lede{font-size:clamp(1.15rem, 1.02rem + .5vw, 1.35rem);line-height:1.5;max-width:40rem}
+.meta{display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
+.meta span{font:500 .8rem/1.4 var(--font-mono);color:var(--ink-2)}
+.meta .status{color:var(--ink);font-weight:600}
+
+/* Notes and the rule box */
+.note{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.15rem;display:grid;gap:.5rem}
+.rule{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1rem;align-items:start;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1.1rem 1.2rem}
+.roundel{width:54px;height:54px;flex:none}
+.roundel .disc{fill:var(--plate);stroke:var(--plate-red)}
+.roundel .eye{fill:none;stroke:var(--plate-ink)}
+.roundel .pupil{fill:var(--plate-ink)}
+.roundel .slash{stroke:var(--plate-red)}
+.rule h3{margin:0 0 .35rem;font-size:1.15rem}
+.rule ol{margin-top:.5rem}
+
+/* Contents */
+.contents{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem}
+.contents ol{columns:2 15rem;column-gap:2rem;margin-top:.6rem;padding-left:1.5rem}
+.contents li{break-inside:avoid}
+.contents li + li{margin-top:.25rem}
+
+/* Section heads */
+.section-head{display:flex;align-items:baseline;gap:.8rem;border-top:2px solid var(--ink);padding-top:.9rem;margin-top:4.5rem}
+.section-no{font:600 .82rem/1 var(--font-mono);color:var(--ink-2);letter-spacing:.06em;min-width:1.2rem}
+
+/* Tables */
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.94rem;line-height:1.45}
+th{text-align:left;font:600 .7rem/1.3 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);background:var(--surface-2)}
+th,td{padding:.6rem .75rem;border-bottom:1px solid var(--rule);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+td code{white-space:normal}
+table.minw{min-width:46rem}
+table.minw-s{min-width:34rem}
+td.nowrap,th.nowrap{white-space:nowrap}
+tr.group td{background:var(--surface-2);font:600 .74rem/1.3 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+
+/* Formulas */
+.formula{font:500 .88rem/1.65 var(--font-mono);background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:.8rem 1rem;overflow-x:auto;white-space:pre}
+
+/* Mode chips */
+.mode{display:inline-flex;align-items:center;font:600 .7rem/1 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;padding:.28rem .5rem;border-radius:999px;border:1.5px solid currentColor;white-space:nowrap}
+.m-ambient{color:var(--m-ambient)}.m-alert{color:var(--m-alert)}.m-panic{color:var(--m-panic)}.m-victim{color:var(--m-victim)}.m-recover{color:var(--m-recover)}
+
+/* Score bars: one scale, 0 to 1 */
+.scores{list-style:none;padding:0;margin:0;display:grid;gap:.28rem;font-size:.9rem}
+.scores li{display:grid;grid-template-columns:minmax(6.8rem, max-content) minmax(3rem,1fr) 2.9rem;align-items:center;gap:.6rem;margin:0}
+.scores .a{white-space:nowrap}
+.scores .bar{height:.55rem;background:var(--bar-track);border-radius:999px;overflow:hidden}
+.scores .bar i{display:block;height:100%;width:calc(var(--v) * 100%);background:var(--bar);opacity:.42;border-radius:999px}
+.scores .win .bar i{opacity:1}
+.scores .win .a{font-weight:700}
+.scores .n{font:500 .8rem/1 var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+.scores .off .a,.scores .off .n{color:var(--ink-2)}
+
+/* Decision-cycle ticks */
+.ticks{display:grid;gap:.9rem}
+.tick{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.15rem}
+.tick header{display:flex;flex-wrap:wrap;align-items:baseline;gap:.45rem .8rem}
+.tick time{font:600 .86rem/1 var(--font-mono);font-variant-numeric:tabular-nums}
+.tick h4{flex:1 1 14rem}
+.kv{display:grid;grid-template-columns:9.2rem minmax(0,1fr);gap:.5rem 1rem;margin:.75rem 0 0}
+.kv dt{font:600 .7rem/1.5 var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);padding-top:.2rem}
+.kv dd{margin:0;min-width:0}
+.tick.brief p{margin-top:.5rem}
+
+/* Citizens and scenarios */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.who{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.1rem;display:grid;gap:.6rem;align-content:start;min-width:0}
+.who h4{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .6rem}
+.who h4 small{font:500 .74rem/1.3 var(--font-mono);color:var(--ink-2);letter-spacing:.02em}
+.who p{font-size:.97rem}
+.who .why{font-size:.9rem;color:var(--ink-2)}
+.traits .a{min-width:6.2rem}
+.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.25rem .9rem;margin:0;font-size:.86rem}
+.params div{display:flex;justify-content:space-between;gap:.5rem;border-bottom:1px dotted var(--rule);padding-block:.12rem}
+.params dt{color:var(--ink-2)}
+.params dd{margin:0;font-family:var(--font-mono);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scenario-setup{color:var(--ink-2)}
+
+/* Diagrams */
+figure{margin:0}
+.sheet{background:var(--paper);border:1px solid var(--paper-edge);border-radius:10px;padding:1rem;overflow-x:auto}
+.sheet pre.mermaid{margin:0 auto;background:transparent;color:var(--paper-ink);font:12px/1.45 var(--font-mono);white-space:pre;min-width:44rem;text-align:center}
+.sheet svg{display:block;margin-inline:auto;height:auto;white-space:normal;line-height:1.5}
+.sheet svg *{box-sizing:content-box}
+figcaption{margin-top:.6rem;font-size:.94rem;color:var(--ink-2);max-width:var(--text)}
+figcaption strong{color:var(--ink)}
+details.src{margin-top:.5rem}
+details.src summary{cursor:pointer;font:600 .76rem/1.6 var(--font-mono);color:var(--accent);width:max-content}
+details.src pre{margin:.5rem 0 0;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:.8rem;overflow:auto;font:12px/1.5 var(--font-mono);max-height:22rem;white-space:pre}
+.copy{margin-top:.45rem;font:600 .76rem/1 var(--font-mono);background:var(--surface-2);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:.45rem .7rem;cursor:pointer}
+
+/* Roadmap */
+.ms{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1.1rem 1.2rem}
+.ms header{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem .8rem}
+.ms-id{font:820 1.05rem/1 var(--font-display);font-stretch:80%;background:var(--ink);color:var(--bg);padding:.3rem .45rem;border-radius:4px}
+.ms .tag{font:600 .7rem/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.ms .kv{grid-template-columns:8.6rem minmax(0,1fr)}
+.stack{display:grid;gap:.9rem}
+
+/* Two-column lists */
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.cols > div{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.1rem;min-width:0}
+.cols h4{margin-bottom:.4rem}
+
+.tolink{position:fixed;right:calc(14px + env(safe-area-inset-right, 0px));bottom:calc(14px + env(safe-area-inset-bottom, 0px));font:600 .76rem/1 var(--font-mono);background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:999px;padding:.55rem .8rem;text-decoration:none;box-shadow:0 6px 16px -10px var(--shadow)}
+footer{margin-top:4rem;border-top:1px solid var(--rule);padding-top:1rem;font-size:.9rem;color:var(--ink-2)}
+
+@media (max-width: 960px){
+  .trio{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr}
+}
+@media (max-width: 640px){
+  .kv,.ms .kv{grid-template-columns:1fr;gap:.2rem}
+  .kv dd{margin-bottom:.45rem}
+  .rule{grid-template-columns:1fr}
+  .params{grid-template-columns:1fr}
+  .scores li{grid-template-columns:minmax(6rem, max-content) minmax(2rem,1fr) 2.7rem}
+  .section-head{margin-top:3.5rem}
+}
+
+/* Police page additions: police-blue plate line, Battenburg strip, officer-state chips, knowledge ladder, scenario timelines. */
+:root{
+  --plate-blue:#1b3f8f; --batt-blue:#1b3f8f; --batt-yellow:#f3c300;
+  --s-patrol:#2e7a4f; --s-respond:#2f6690; --s-investigate:#1f7a7a; --s-pursue:#b4271f; --s-search:#6d4aa0; --s-arrest:#16191d; --s-return:#6b737d;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --plate-blue:#1b3f8f; --batt-blue:#1b3f8f; --batt-yellow:#f3c300;
+    --s-patrol:#6cc391; --s-respond:#86b6df; --s-investigate:#5fc4c4; --s-pursue:#f27b6f; --s-search:#b49ae6; --s-arrest:#e7e9e4; --s-return:#a7aeb6;
+  }
+}
+:root[data-theme="dark"]{
+  --plate-blue:#1b3f8f; --batt-blue:#1b3f8f; --batt-yellow:#f3c300;
+  --s-patrol:#6cc391; --s-respond:#86b6df; --s-investigate:#5fc4c4; --s-pursue:#f27b6f; --s-search:#b49ae6; --s-arrest:#e7e9e4; --s-return:#a7aeb6;
+}
+.borough,.postcode{color:var(--plate-blue)}
+.battenburg{height:12px;margin-top:.45rem;border-radius:3px;background:repeating-linear-gradient(90deg,var(--batt-blue) 0 22px,var(--batt-yellow) 22px 44px)}
+.st-patrol{color:var(--s-patrol)}.st-respond{color:var(--s-respond)}.st-investigate{color:var(--s-investigate)}.st-pursue{color:var(--s-pursue)}.st-search{color:var(--s-search)}.st-arrest{color:var(--s-arrest)}.st-return{color:var(--s-return)}
+
+.ladder{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.ladder li{display:grid;grid-template-columns:auto 9rem minmax(0,1fr);gap:.4rem 1rem;align-items:start;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.75rem 1rem;margin:0}
+.ladder strong{font-family:var(--font-display);font-stretch:92%;font-size:1.02rem}
+.ladder p{font-size:.95rem}
+.sig{display:inline-grid;grid-auto-flow:column;gap:3px;align-items:end;height:18px;padding-top:.2rem}
+.sig i{display:block;width:5px;background:var(--bar-track);border-radius:1px}
+.sig i:nth-child(1){height:6px}.sig i:nth-child(2){height:9px}.sig i:nth-child(3){height:12px}.sig i:nth-child(4){height:15px}.sig i:nth-child(5){height:18px}
+.sig i.on{background:var(--accent)}
+
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:.55rem}
+.timeline li{display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.4rem .9rem;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.7rem .95rem;margin:0}
+.timeline time{font:600 .8rem/1.5 var(--font-mono);font-variant-numeric:tabular-nums;padding-top:.1rem}
+.timeline .what{display:grid;gap:.3rem;min-width:0}
+.timeline .k{font-size:.92rem;color:var(--ink-2)}
+.timeline .k b{font:600 .68rem/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-right:.35rem}
+.cols.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.scenario-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem .8rem}
+@media (max-width: 960px){.cols.three{grid-template-columns:1fr}}
+@media (max-width: 640px){
+  .timeline li{grid-template-columns:1fr;gap:.2rem}
+  .ladder li{grid-template-columns:auto minmax(0,1fr)}
+  .ladder li p{grid-column:1 / -1}
+}
+
+/* Long API names in prose wrap instead of widening the page on phones. */
+p code,li code,dd code,figcaption code{overflow-wrap:anywhere}
+</style>
+
+<div class="page">
+
+<header class="masthead" id="top">
+  <div class="plate">
+    <div class="plate-inner">
+      <span class="postcode" aria-hidden="true">MG1</span>
+      <h1>Police Brain</h1>
+      <span class="borough" aria-hidden="true">MAGALO Constabulary</span>
+    </div>
+    <div class="battenburg" aria-hidden="true"></div>
+  </div>
+  <p class="lede">A blueprint for MAGALO's AI police: officers who observe, report, reason about where you went, search for you, and sometimes get it wrong. Nothing about you is known unless someone saw it, heard it or was told it.</p>
+  <div class="meta">
+    <span>Design blueprint v1</span>
+    <span>26 October 2026</span>
+    <span class="status">Status: for review</span>
+    <span>No code · no project files</span>
+  </div>
+  <div class="note">
+    <span class="eyebrow">How to read this</span>
+    <p>This is a design document for later implementation, written without access to MAGALO's code. Existing crime, heat, XP, arrest and confiscation systems are treated as black boxes behind adapters. It builds on the <a href="https://claude.ai/artifact/PDHVobzKHx9X9JGGiHE6iK">Citizen Brain v1</a> contracts: witnesses call 999 (6 s, interruptible), shout, or give statements, and civilian reports carry a last-seen spot and heading but never the player's identity.</p>
+    <p><strong>Every number here is a playtest hypothesis</strong>, not an established optimum. Where a number depends on the player's sprint speed, it's written relative to it (S<sub>p</sub>), with 24 studs/s as the worked example.</p>
+  </div>
+</header>
+
+<nav class="contents" id="contents" aria-label="Contents">
+  <span class="eyebrow">Contents</span>
+  <ol>
+    <li><a href="#philosophy">Design philosophy and objectives</a></li>
+    <li><a href="#architecture">Police brain architecture</a></li>
+    <li><a href="#dispatch">Dispatch and case management</a></li>
+    <li><a href="#perception">Perception and shared knowledge</a></li>
+    <li><a href="#pursuit">Pursuit and search</a></li>
+    <li><a href="#escalation">Wanted levels, escalation, difficulty</a></li>
+    <li><a href="#arrest">Arrest and getaway integration</a></li>
+    <li><a href="#apartment">Apartment-entry security contract</a></li>
+    <li><a href="#multiplayer">Multiplayer design</a></li>
+    <li><a href="#vehicles">Vehicle pursuit expansion</a></li>
+    <li><a href="#diagrams">Seven diagrams</a></li>
+    <li><a href="#scenarios">Five gameplay simulations</a></li>
+    <li><a href="#performance">Roblox architecture and performance</a></li>
+    <li><a href="#milestones">Implementation milestones</a></li>
+    <li><a href="#review">Critical design review</a></li>
+    <li><a href="#first">First playable version</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="philosophy">
+  <div class="section-head"><span class="section-no">1</span><h2>Design philosophy and gameplay objectives</h2></div>
+  <p>The goal is police that appear to reason about what the player did. After a chase, a player should be able to explain every police move: "someone rang 999 and said I ran east, so they came from the east; I lost them at the corner, so they searched the alley I'd have taken."</p>
+
+  <h3>Objectives</h3>
+  <ul>
+    <li><strong>Intelligent but outsmartable.</strong> Officers coordinate, predict obvious routes and search sensibly, but they overrun corners, pick the wrong branch, check the wrong bin and run out of breath.</li>
+    <li><strong>Proportionate.</strong> A phone snatch gets one officer who investigates, not a manhunt. Escalation has to be earned by repeat crimes, long evasion and evidence.</li>
+    <li><strong>Escapes are real.</strong> A getaway is the outcome of an actual pursuit or search that failed, never a timer that happens to expire.</li>
+    <li><strong>Readable.</strong> Radio chatter, a last-known-position marker and officer body language tell the player what the police believe.</li>
+    <li><strong>MAGALO's own identity.</strong> On foot first, on British streets, driven by witnesses and investigation, with no weapons.</li>
+  </ul>
+
+  <h3 id="rules">Rules of fair play</h3>
+  <ol>
+    <li>Police act only on what they perceived or were told: sight, sound, reports and radio.</li>
+    <li>Every piece of information has a source, a time and a confidence, and it decays.</li>
+    <li>Reinforcements arrive from somewhere you could watch them come from, such as the station or a road at the edge of the map. They never spawn in view or close by.</li>
+    <li>No officer outruns a sprinting player, and officers tire sooner.</li>
+    <li>An arrest needs proximity and time, and every arrest attempt is telegraphed and has a window to break free.</li>
+    <li>Hidden means hidden: no tracking through walls, and hiding spots are opened only for a reason.</li>
+    <li>Every search ends.</li>
+    <li>Mistakes are allowed, and visible.</li>
+  </ol>
+
+  <h3 id="benchmark">Benchmark: CrimeLogic V2, verified against assumed</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Claim</th><th>Status</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>The "AIPD" (Artificial Intelligence Police Department) is an AI police force whose goal is to arrest players</td><td><strong>Verified</strong></td><td>Original CrimeLogic game page</td></tr>
+        <tr><td>AI cops are dispatched to the scene when you become wanted, drive to you and attempt to arrest; supports multiplayer</td><td><strong>Verified</strong></td><td>Changelog on the Police AI Playground and original CrimeLogic pages</td></tr>
+        <tr><td>Cops can pop tires; an experimental megaphone orders you to stop your vehicle</td><td><strong>Verified</strong></td><td>Same changelog</td></tr>
+        <tr><td>V2: high-speed pursuits where you dodge PIT maneuvers; heists and gunfights; "The AIPD is always watching"; early access</td><td><strong>Verified</strong></td><td>CrimeLogic V2 game page</td></tr>
+        <tr><td>Star-based wanted levels; boxing and PIT maneuvers or shooting tires to stop vehicles; SWAT at 4+ stars</td><td>Reported, not verified</td><td>Community wiki via search snippets (the page itself couldn't be fetched)</td></tr>
+        <tr><td>An update made cops easier for new players and VIP servers; SWAT and civilians in development</td><td>Reported, not verified</td><td>Search snippets of update notes</td></tr>
+        <tr><td>How CrimeLogic police perceive, whether they search after losing sight, whether witnesses report, how foot chases coordinate, spawn rules</td><td>Unknown</td><td>Not documented anywhere I could find. Nothing in this design assumes them</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>What MAGALO takes from it:</strong> dispatch to the scene, escalating tiers, a later vehicle layer with PIT as a high-tier tactic, and gentler police for new players. <strong>What MAGALO does differently:</strong> investigation and search are the core, reports come from simulated witnesses, the player starts on foot, and there's no combat.</p>
+
+  <h3 id="techniques">Techniques borrowed from other games and research</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Technique</th><th>Seen in</th><th>Used here as</th></tr></thead>
+      <tbody>
+        <tr><td>Wanted level held by line of sight; police vision cones on the radar; stars flash while police have lost you</td><td>GTA V (player guides)</td><td>Pursuit stays active only while someone can see you; optional officer-awareness cues on the HUD</td></tr>
+        <tr><td>Witnesses phone the police, with a short window to stop the call</td><td>Watch Dogs (guides)</td><td>Already in Citizen Brain: the 6 s Call 999 files nothing if interrupted</td></tr>
+        <tr><td>A silhouette marks where enemies believe you are after you break line of sight</td><td>Splinter Cell: Conviction</td><td>A last-known-position marker on the player's HUD</td></tr>
+        <tr><td>Per-character knowledge plus shared services that update periodically and can go stale; the closest guard investigates the last known location while others fan out</td><td>Hitman (2016), per AI and Games</td><td>Officer blackboards plus a case knowledge store with radio delay; nearest officer to the LKP, others fan out</td></tr>
+        <tr><td>Occupancy maps: a probability spread of where the target could be, cleared wherever guards look</td><td>Damián Isla, <em>Third Eye Crime</em> (AIIDE 2013)</td><td>The search planner, on a street graph</td></tr>
+        <tr><td>Pure pursuit steering toward a lookahead point on a path</td><td>Robotics and autonomous driving</td><td>Future police car steering</td></tr>
+        <tr><td>Dispatching limited units by priority and distance</td><td>Dispatch games such as <em>This Is the Police</em></td><td>Unit allocation by priority, ETA and availability</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="architecture">
+  <div class="section-head"><span class="section-no">2</span><h2>Recommended police brain architecture</h2></div>
+  <p><strong>Three layers, one shared picture.</strong> A central <strong>Dispatch</strong> owns cases and decides who responds. Each active case gets a lightweight <strong>squad</strong> that owns the shared tactical picture: where the suspect was last seen, how confident everyone is, who does what, and where to search. Each <strong>officer</strong> runs a small state machine with local utility choices, its own senses and its own movement. Diagram <a href="#diagram-a">A</a> shows the whole structure and <a href="#diagram-b">B</a> the officer's states.</p>
+  <p>This is the simplest combination that delivers coordination without omniscience. A state machine gives predictable, debuggable officer behavior. Utility appears only where officers choose among options (which corner, which bin, which junction). A per-case blackboard is the single place shared knowledge lives, which makes "what do the police know?" one inspectable object. Section <a href="#review">15</a> compares this with three alternatives.</p>
+
+  <h3 id="who-decides">Who decides what</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Decision</th><th>Made by</th><th>Why there</th></tr></thead>
+      <tbody>
+        <tr><td>Notice and identify a suspect; react; chase someone visible</td><td>Officer</td><td>Depends on that officer's own eyes and reaction time</td></tr>
+        <tr><td>Attempt an arrest</td><td>Officer requests, Arrest Service validates</td><td>Server-authoritative distance, line of sight and state checks</td></tr>
+        <tr><td>Peek this corner, open this bin, sprint or pace</td><td>Officer, inside its assigned area</td><td>Local detail the squad doesn't need to micro-manage</td></tr>
+        <tr><td>Who chases, who cuts off, who searches where, who holds a junction</td><td>Squad</td><td>Needs every officer's position and the shared belief</td></tr>
+        <tr><td>Split up or regroup</td><td>Squad</td><td>Depends on how the probability splits into clusters</td></tr>
+        <tr><td>Request backup</td><td>Officer requests, Dispatch approves</td><td>Dispatch sees all units and all cases</td></tr>
+        <tr><td>Which units respond, escalation level, reinforcement spawns</td><td>Dispatch</td><td>City-wide resources and fairness rules</td></tr>
+        <tr><td>End the search</td><td>Squad proposes, Dispatch closes the case</td><td>One owner for outcomes, so rewards fire exactly once</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="states">Officer states</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>State</th><th>Does</th><th>Enters when</th><th>Leaves when</th><th class="nowrap">Think rate</th></tr></thead>
+      <tbody>
+        <tr><td><span class="mode st-patrol">Patrol</span></td><td>Walks a beat, stands at posts, watches</td><td>Default; back from Return</td><td>Assigned, hears a disturbance, sees a crime, identifies a briefed suspect</td><td class="num">0.5 Hz</td></tr>
+        <tr><td><span class="mode st-respond">Respond</span></td><td>Jogs to the report spot along the graph; radios "en route"</td><td>Dispatch assignment</td><td>Arrives, or identifies the suspect on the way</td><td class="num">1 Hz</td></tr>
+        <tr><td><span class="mode st-investigate">Investigate</span></td><td>Talks to witnesses (takes statements), scans the scene</td><td>Arrived; heard a disturbance</td><td>Suspect identified, a heading gives a search, or 45 s with no leads</td><td class="num">2 Hz</td></tr>
+        <tr><td><span class="mode st-pursue">Pursue</span></td><td>Chase, cutoff or close-in; peeks after occlusion; radio updates</td><td>Suspect confirmed</td><td>In arrest range, or unseen for 2.5 s</td><td class="num">5 Hz</td></tr>
+        <tr><td><span class="mode st-search">Search</span></td><td>Sweeps clusters, peeks corners, holds junctions, inspects hiding spots</td><td>Lost sight; or a report gives a heading</td><td>Reacquired, found, or the search ends</td><td class="num">3 Hz</td></tr>
+        <tr><td><span class="mode st-arrest">Arrest</span></td><td>Telegraphed reach, grab, restrain, escort</td><td>Within range with line of sight</td><td>Broken free (back to Pursue) or complete</td><td class="num">10 Hz</td></tr>
+        <tr><td><span class="mode st-return">Return</span></td><td>Walks back to beat or station; reinforcements despawn out of sight</td><td>Case closed or released</td><td>On beat</td><td class="num">0.5 Hz</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><strong>Local utility, kept small.</strong> In Search, an officer scores candidate nodes and hiding spots by probability per second of travel. In Pursue, it chooses direct chase or graph route, sprint or pace (stamina), and when to reach. In Patrol, it picks the next beat point. Each choice uses 2–3 factors.</li>
+    <li><strong>Two blackboards.</strong> The <em>officer blackboard</em> holds what this officer has seen or heard, plus its role, target and stamina. The <em>case blackboard</em> holds the shared belief: knowledge state, last known position (LKP) and heading, the occupancy map, cleared nodes, opened hiding spots, roles and escalation. Officers write to the case only by radio, which has delay.</li>
+    <li><strong>No identical officers.</strong> Each officer gets small spawn-time variations: fitness (±20% sprint duration), diligence (time spent per check), reaction jitter (±0.1 s) and seeded tie-breaking. Roles differ too, so two officers rarely make the same move.</li>
+  </ul>
+</section>
+
+<!-- 3 -->
+<section id="dispatch">
+  <div class="section-head"><span class="section-no">3</span><h2>Dispatch and case-management architecture</h2></div>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Entity</th><th>Key fields</th><th>Lifetime</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Incident</strong></td><td>id, crime type, position, time, severity, reporters</td><td>Until its case resolves</td></tr>
+        <tr><td><strong>Case</strong></td><td>id, suspect (server only), incidents, status, level, knowledge (state, LKP, heading, confidence, occupancy), units, timers, outcome</td><td>Open → resolved, then archived for logs only</td></tr>
+        <tr><td><strong>Report</strong></td><td>source, time, spot, heading, age, quality, description quality</td><td>Merged into the case</td></tr>
+        <tr><td><strong>Unit</strong></td><td>id, type (foot, later car), state, primary case, role, position, stamina</td><td>Pooled; reinforcements despawn on return</td></tr>
+        <tr><td><strong>Player crime state</strong></td><td>Free, Wanted, BeingGrabbed, Restrained, Processing, Entering, InApartment</td><td>Per player, server only</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="intake">How information reaches dispatch</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Source</th><th>Delay</th><th>Quality</th><th>Carries</th><th>Can be wrong?</th></tr></thead>
+      <tbody>
+        <tr><td>An officer sees the crime</td><td>None</td><td class="num">1.0</td><td>Confirmed position; case opens at L2</td><td>No</td></tr>
+        <tr><td>Civilian Call 999 (Citizen Brain)</td><td>6 s call + 3–8 s processing</td><td class="num">saw 0.6 · heard 0.3</td><td>Spot, heading, age; description quality 0.6 if seen, 0.1 if only heard</td><td>Heading wrong 10–20% of the time for low-awareness witnesses</td></tr>
+        <tr><td>Shout heard by an officer (35 studs)</td><td>Reaction delay only</td><td class="num">0.4</td><td>A position to investigate</td><td>No heading, no description</td></tr>
+        <tr><td>Statement to an officer on scene</td><td>5 s conversation</td><td class="num">victim 0.7 · witness 0.6</td><td>Refreshes spot, heading and description</td><td>Same heading noise</td></tr>
+        <tr><td>Late call (witness rang later)</td><td>As call, but old</td><td>Decays with age</td><td>Same as a call</td><td>Often stale</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Duplicate reports about the same suspect merge into one case and raise confidence slightly. Reports seed the same occupancy belief that sightings do, fast-forwarded by their age, so an old report naturally means a wide, vague search.</p>
+
+  <h3 id="selection">Choosing who responds</h3>
+  <div class="formula wide">priority   = severity × evidence × recency × (1 + 0.5 × heat tier) × repeat multiplier
+unit score = ETA (graph path ÷ jog speed) + preemption penalty + beat-departure cost − approach-angle bonus
+choose     : lowest score among units in Patrol or Return, or on lower-priority work
+backup     : prefer units whose approach is more than 60° from existing responders</div>
+  <ul>
+    <li><strong>Levels set head-count:</strong> L1 one unit, L2 up to two, L3 three, L4 four (<a href="#escalation">section 6</a>).</li>
+    <li><strong>Preemption:</strong> an L1 investigation can lose its unit to a pursuit elsewhere. An active pursuit can't be stripped unless it's deep in a low-confidence search.</li>
+    <li><strong>Minimum service and caps:</strong> every case in Pursuit gets at least one unit if any exists; no case gets more than its level allows. One player's spree can't drain every officer from the server.</li>
+    <li><strong>No units free:</strong> the case is logged at L0 and closes as Unsolved after 45 s. Busy servers make low-level theft easier, which is realistic and self-balancing.</li>
+    <li><strong>Officer pool:</strong> 2 on-foot officers plus 1 per 2 active players, capped at 8 until profiling says otherwise.</li>
+  </ul>
+
+  <h3 id="spawning">Fair reinforcement spawning</h3>
+  <ul>
+    <li>Only at the police station and authored arrival points at the edge of the map.</li>
+    <li>At least 60 studs from every active suspect's true position and LKP, and outside every player's line of sight, checked at spawn time.</li>
+    <li>Reinforcements must travel. Dispatch radios "two more units en route", so the player hears them coming.</li>
+    <li>Patrol officers who were already visibly in the world can respond from wherever they are. That's luck, not cheating.</li>
+  </ul>
+
+  <h3 id="lifecycle">Case lifecycle</h3>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Status</th><th>Meaning</th><th>Next</th></tr></thead>
+      <tbody>
+        <tr><td>Reported</td><td>Report received, no unit yet</td><td>Responding, or L0 logged</td></tr>
+        <tr><td>Responding / Investigating</td><td>Unit travelling or at the scene</td><td>Pursuit, Search, or Unsolved after 45 s</td></tr>
+        <tr><td>Pursuit</td><td>An officer has the suspect in sight, or did in the last 2.5 s</td><td>Search, or Arrested</td></tr>
+        <tr><td>Search</td><td>Lost sight; searching from the LKP</td><td>Pursuit (reacquired), or Evaded</td></tr>
+        <tr><td>Resolved</td><td>Arrested · Evaded · Unsolved · Abandoned</td><td>Archived; outcome processed once</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="perception">
+  <div class="section-head"><span class="section-no">4</span><h2>Perception and shared-knowledge model</h2></div>
+
+  <h3 id="senses">Officer senses</h3>
+  <ul>
+    <li><strong>Vision:</strong> 60 studs, 120° field of view, plus a 6-stud bubble of 360° awareness at half strength. A target counts as visible if a ray from the officer's eyes reaches its head or upper torso. Vision rays ignore characters and hit walls, fences and props flagged as sight blockers.</li>
+    <li><strong>Reaction:</strong> 0.45 s from confirmation to acting, with ±0.1 s per officer.</li>
+    <li><strong>Hearing</strong> gives a fuzzy position (±4 studs), never an identity: sprint footsteps 18 studs, landing from a jump 12, bin lid 14, door 16, a civilian's shout 35, a scream 45. Walking and crouching are silent.</li>
+    <li><strong>Reports and radio</strong> deliver second-hand knowledge with delay and a quality rating.</li>
+  </ul>
+
+  <h3 id="identification">Identification: telling a suspect from everyone else</h3>
+  <p>Police must not treat every nearby player as a suspect. An officer can only identify a player who is the suspect of a case it has been briefed on. Identification then builds up while the player is visible:</p>
+  <div class="formula wide">ID rate per second = 1.6 × description quality × 1 / (1 + (d / 25)²) × behavior × on-scene
+description quality : officer saw it 1.0 (confirmed instantly) · victim 0.7 · witness saw 0.6 · heard only 0.1
+behavior            : fleeing from police 2.0 · sprinting 1.4 · walking 0.8 · standing 0.6
+on-scene            : 1.5 within the report's area, otherwise 1.0
+confirmed           : ID reaches 1.0</div>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Seconds to identify</th><th>15 studs</th><th>25 studs</th><th>40 studs</th><th>60 studs</th></tr></thead>
+      <tbody>
+        <tr><td>Victim statement (0.7), walking / fleeing</td><td class="num">1.5 / 0.6</td><td class="num">2.2 / 0.9</td><td class="num">4.0 / 1.6</td><td class="num">7.5 / 3.0</td></tr>
+        <tr><td>Witness saw it (0.6), walking / fleeing</td><td class="num">1.8 / 0.7</td><td class="num">2.6 / 1.0</td><td class="num">4.6 / 1.9</td><td class="num">8.8 / 3.5</td></tr>
+        <tr><td>Heard only (0.1), walking / fleeing</td><td class="num">10.6 / 4.2</td><td class="num">15.6 / 6.2</td><td class="num">27.8 / 11.1</td><td class="num">52.8 / 21.1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Staying calm and keeping your distance buys real time, and running from police gives you away. The player sees an officer's attention build: a head turn, then a "?" over the officer, then "!" on confirmation. Innocent players are never identified, because they aren't the suspect of any case. At most an officer glances at them.</p>
+
+  <h3 id="knowledge">What the police know: five states</h3>
+  <ol class="ladder wide">
+    <li><span class="sig" aria-label="Confidence 5 of 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><strong>Confirmed</strong><p>At least one officer sees and has identified the suspect right now. Position is exact because it is being perceived. Officers pursue.</p></li>
+    <li><span class="sig" aria-label="Confidence 4 of 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><strong>Occluded</strong><p>Seen within the last 2.5 s. Officers run to where the suspect should be (the LKP plus up to 1.5 s of travel along the graph in the last heading) and peek.</p></li>
+    <li><span class="sig" aria-label="Confidence 3 of 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><strong>Last seen</strong><p>An officer saw them, but more than 2.5 s ago. The LKP seeds a probability spread over the street graph, and officers search it.</p></li>
+    <li><span class="sig" aria-label="Confidence 2 of 5"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span><strong>Reported</strong><p>No officer has seen them in this case. A report's spot and heading seed a wider, vaguer spread, aged by how old the report is. Officers respond and investigate.</p></li>
+    <li><span class="sig" aria-label="Confidence 0 of 5"><i></i><i></i><i></i><i></i><i></i></span><strong>Lost</strong><p>The search has run out of probability or time. The case closes as Evaded (or Unsolved, if police never saw them).</p></li>
+  </ol>
+
+  <h3 id="sharing">Shared knowledge without omniscience</h3>
+  <ul>
+    <li><strong>One belief per case.</strong> The case blackboard holds the knowledge state, LKP, heading and occupancy map. It changes only through sightings, sounds, reports and "clear" messages.</li>
+    <li><strong>Radio has latency:</strong> 0.75–1.5 s. Teammates act on slightly old information, so a sharp turn right after being seen is a real skill.</li>
+    <li><strong>Briefing scope:</strong> squad members are briefed on their case. From L3, nearby patrols get a lookout broadcast that lets them identify the suspect, but they stay on their beat unless assigned.</li>
+    <li><strong>The no-omniscience boundary.</strong> Officer brains and the search planner never read a player's true position. Only the Perception module touches characters, and only through range, field-of-view and line-of-sight checks. A unit test enforces the dependency, and the debug log tags every officer move with the information source that justified it.</li>
+    <li><strong>Transparency for the player.</strong> The wanted player hears dispatch summaries of their own case ("suspect last seen heading east on Kings Road"), sees an LKP marker where police last saw them, and sees the search phase. The full probability map stays hidden.</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section id="pursuit">
+  <div class="section-head"><span class="section-no">5</span><h2>Pursuit and search behavior specification</h2></div>
+
+  <h3 id="chase">On-foot pursuit</h3>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Parameter</th><th>Hypothesis</th><th>At S<sub>p</sub> = 24</th></tr></thead>
+      <tbody>
+        <tr><td>Officer jog / sprint</td><td class="num">0.70 × S<sub>p</sub> / 0.92 × S<sub>p</sub></td><td class="num">16.8 / 22.1 studs/s</td></tr>
+        <tr><td>Sprint stamina, then recovery</td><td>8 s, then 4 s at jog (fitness ±20%)</td><td>—</td></tr>
+        <tr><td>Turn penalty</td><td>−15% speed on turns sharper than 70°</td><td>—</td></tr>
+        <tr><td>Gap growth while both sprint</td><td class="num">0.08 × S<sub>p</sub></td><td class="num">1.9 studs/s</td></tr>
+        <tr><td>Gap after 8 s from 10 studs</td><td>—</td><td class="num">25.4 studs, then +7.2/s at jog</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>In a straight race the player wins. Police catch suspects through coordination, dead ends, obstacles, crowds and player mistakes. That's the intended source of challenge.</p>
+  <ul>
+    <li><strong>Steering:</strong> while a shapecast between officer and suspect is clear, the officer chases directly, aiming at the suspect's position plus up to 0.4 s of their velocity. Otherwise it follows the graph to the suspect's node. It re-plans at most every 0.5 s, or when the suspect changes node.</li>
+    <li><strong>Corners:</strong> when the suspect disappears, the officer runs to the predicted point and peeks for 0.4 s before deciding they're gone.</li>
+    <li><strong>Spacing:</strong> a second officer keeps at least 6 studs lateral offset or takes a parallel street. Officers never stack in single file.</li>
+    <li><strong>Support:</strong> the pursuer radios a position every 2 s, and asks for backup if the chase passes 10 s or the gap grows for 4 s straight.</li>
+    <li><strong>Cutoffs (L3+):</strong> the squad predicts the suspect's next junctions up to 3 hops ahead, weighted by heading and by distance from other officers. A cutoff officer goes to a junction only if it can arrive within 1 s of the suspect's estimated arrival (from the suspect's observed speed). It then holds and watches.</li>
+    <li><strong>Limited map knowledge:</strong> some edges are tagged as shortcuts: fence gaps, through-passages, roof routes. Police neither path through nor predict along them, unless an officer saw the suspect use one during this case. Then it becomes known for that case only. Map knowledge pays.</li>
+    <li><strong>Arrest attempts</strong> follow <a href="#arrest">section 7</a>: 3.5-stud range, a telegraphed reach, a 1.2 s grab with a chance to break free.</li>
+  </ul>
+
+  <h3 id="search">Search: occupancy over the street graph</h3>
+  <p>The search runs on <strong>PoliceNet</strong>: the Citizen Brain's pedestrian graph plus alley interiors, junction peek points and hiding-spot nodes (bins, deep doorways, behind parked vans), about 150–400 nodes for today's map. Each case in Search keeps an occupancy map: a probability for every node that the suspect is there.</p>
+  <div class="formula wide">every 0.5 s:
+ 1 spread   move most mass about one node per tick (running pace, ~12-stud spacing)
+            weights: away from the LKP 3.0 · sideways 1.0 · back toward it 0.3 · into a hiding spot 0.6
+            heading bias ×2 for the first 6 s · hiding spots release only 2% per tick
+ 2 clear    zero every node any officer can see now (precomputed node visibility); hiding spots excepted
+ 3 evidence noise heard: ×3 on nodes within 6 studs · new sighting or report: reseed
+ 4 normalize total mass back to 1
+ 5 assign   each officer takes the unclaimed cluster with the best p per second of travel</div>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Phase</th><th>Time since last sighting</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td>Hot</td><td>0–15 s</td><td>Run to the nearest clusters, fast corner peeks</td></tr>
+        <tr><td>Warm</td><td>15–45 s</td><td>Systematic sweep at a jog; hiding spots become eligible</td></tr>
+        <tr><td>Cold</td><td>45 s on</td><td>Walking pace, holding junctions, wider loop</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><strong>Hiding spots</strong> are opened when their probability is at least 0.20, or when there's evidence from the last 10 s (a lid heard, a sighting nearby) and it's at least 0.10. Each officer may open at most 2 per search. Opening takes 2 s and is telegraphed. If the player is inside, they get a 0.8 s burst-out window while the officer staggers for 0.6 s.</li>
+    <li><strong>Split and regroup:</strong> when two clusters each hold 25% or more and there are two officers, they split. When a cluster is cleared, its officer joins the next.</li>
+    <li><strong>Communication:</strong> "Checking the north side", "Clear", "Heard something by the bins", "Lost visual at Cobble Row". Each line changes the shared belief, and nearby players hear it.</li>
+  </ul>
+  <p><strong>Simulation check.</strong> I ran the model on a sample alley with three bins:</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Situation</th><th>Bins after 6 s</th><th>Elsewhere</th><th>What police do</th></tr></thead>
+      <tbody>
+        <tr><td>Two exits (north and east), hid quietly</td><td class="num">0.10 · 0.06 · 0.05</td><td>78% beyond the exits</td><td>Sweep outward; bins never reach 0.20; the hider survives</td></tr>
+        <tr><td>Same alley, an officer heard the lid</td><td class="num">0.09 · 0.16 · 0.04</td><td>70% beyond the exits</td><td>Evidence plus p ≥ 0.10: the noisy bin is opened</td></tr>
+        <tr><td>Dead end, hid quietly</td><td class="num">0.40 · 0.34 · 0.26 (by 9 s)</td><td>Nothing else possible</td><td>Bins opened in order; likely found</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>That yields a rule players can learn: <strong>hiding works when the police can't rule out that you ran on.</strong></p>
+
+  <h3 id="search-end">How a search ends, and how that becomes a getaway</h3>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Highest level reached</th><th>T-min</th><th>T-max</th></tr></thead>
+      <tbody>
+        <tr><td>L1–L2</td><td class="num">30 s</td><td class="num">60 s</td></tr>
+        <tr><td>L3</td><td class="num">45 s</td><td class="num">90 s</td></tr>
+        <tr><td>L4</td><td class="num">60 s</td><td class="num">120 s</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>The case closes as <strong>Evaded</strong> when no officer has confirmed the suspect for at least T-min <em>and</em> no cluster within 150 studs of the LKP holds more than 0.15, or when T-max is reached. Probability beyond 150 studs counts as "left the area". The timings use the highest level the case reached, so de-escalation can't shorten them. A report-only case (police never saw the suspect) closes as <strong>Unsolved</strong> 45 s after the first officer reaches the scene. Dispatch emits one outcome event, and the XP system awards a getaway only for Evaded (<a href="#arrest">section 7</a>).</p>
+</section>
+
+<!-- 6 -->
+<section id="escalation">
+  <div class="section-head"><span class="section-no">6</span><h2>Wanted-level and escalation design</h2></div>
+  <h3 id="separate">Six things that must stay separate</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Concept</th><th>Owner</th><th>Scope</th><th>Affects</th><th>Never means</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Heat</strong></td><td>Existing heat system</td><td>Player, decays over time</td><td>How fast new cases escalate, dispatch priority</td><td>That police know where you are</td></tr>
+        <tr><td><strong>Case level</strong> (L0–L4)</td><td>Dispatch</td><td>One case</td><td>Units, roles, search length</td><td>Anything after the case closes</td></tr>
+        <tr><td><strong>Pursuit status</strong></td><td>Case</td><td>One case</td><td>Confirmed or Occluded: officers chasing</td><td>Arrest</td></tr>
+        <tr><td><strong>Search status</strong></td><td>Case</td><td>One case</td><td>Phase, confidence, time left</td><td>Position knowledge</td></tr>
+        <tr><td><strong>Arrest status</strong></td><td>Arrest Service</td><td>Player</td><td>Grab, restrain, processing</td><td>Case outcome until complete</td></tr>
+        <tr><td><strong>Escape outcome</strong></td><td>Dispatch</td><td>One case, once</td><td>XP via the ledger; apartment access</td><td>Clearing heat by itself</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 id="levels">Response levels</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Level</th><th>Triggered by</th><th>Units</th><th>Behavior</th></tr></thead>
+      <tbody>
+        <tr><td><strong>L0</strong> Logged</td><td>Report with no free unit</td><td>0</td><td>Nothing; Unsolved after 45 s</td></tr>
+        <tr><td><strong>L1</strong> Investigate</td><td>Default for a reported phone theft</td><td>1</td><td>Go to the scene, take statements, search from the report</td></tr>
+        <tr><td><strong>L2</strong> Pursuit</td><td>An officer confirms the suspect</td><td>Up to 2</td><td>Chase; backup if the chase passes 10 s or the suspect pulls away</td></tr>
+        <tr><td><strong>L3</strong> Coordinated</td><td>A repeat crime in an open case; pursuit over 25 s; heat tier 2+ at confirmation</td><td>Up to 3</td><td>Cutoffs, lookout broadcast to nearby patrols, split searches</td></tr>
+        <tr><td><strong>L4</strong> Containment</td><td>A third crime in the case; heat tier 3 at confirmation; two re-sightings after a search began</td><td>Up to 4</td><td>Junction holds around the search area, reinforcements from the station</td></tr>
+        <tr><td><strong>L5</strong> Vehicles (future)</td><td>Suspect in a vehicle, or L4 over long distances</td><td>Cars</td><td><a href="#vehicles">Section 10</a></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>De-escalation:</strong> during a search, the level drops one step per 30 s without a sighting (never below L1 while the case is open), and extra units peel off visibly. <strong>Keeping theft proportionate:</strong> one snatch stays at L1 unless an officer sees you. Reaching L3 takes repeat crimes or a long evasion, and L4 takes a spree. Escalation adds coordination, not superpowers.</p>
+
+  <h3 id="difficulty">Difficulty and tunables</h3>
+  <p>Higher difficulty means better coordination, faster but human reactions, smarter search choices and better use of backup. It never means seeing through walls, spawning in view, outrunning a sprinting player, guaranteed arrests or endless searches. MAGALO can start new players on Gentle and move to Standard after a few getaways, echoing CrimeLogic's reported "easier for new players" change.</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Tunable (playtest hypotheses)</th><th>Gentle</th><th>Standard</th><th>Sharp</th></tr></thead>
+      <tbody>
+        <tr><td>Vision distance · field of view</td><td class="num">50 studs · 110°</td><td class="num">60 · 120°</td><td class="num">70 · 130°</td></tr>
+        <tr><td>Reaction delay</td><td class="num">0.6 s</td><td class="num">0.45 s</td><td class="num">0.35 s</td></tr>
+        <tr><td>Identification speed multiplier</td><td class="num">0.8</td><td class="num">1.0</td><td class="num">1.2</td></tr>
+        <tr><td>Radio latency</td><td class="num">1.5 s</td><td class="num">1.0 s</td><td class="num">0.75 s</td></tr>
+        <tr><td>Officer sprint · stamina</td><td class="num">0.88 S<sub>p</sub> · 6 s</td><td class="num">0.92 S<sub>p</sub> · 8 s</td><td class="num">0.95 S<sub>p</sub> · 10 s</td></tr>
+        <tr><td>Occluded window (chase distance before searching)</td><td class="num">2.0 s</td><td class="num">2.5 s</td><td class="num">3.0 s</td></tr>
+        <tr><td>Search T-min / T-max at L1–L2</td><td class="num">25 / 50 s</td><td class="num">30 / 60 s</td><td class="num">40 / 75 s</td></tr>
+        <tr><td>Backup delay · max units at L3</td><td class="num">15 s · 2</td><td class="num">10 s · 3</td><td class="num">6 s · 3</td></tr>
+        <tr><td>Arrest range · grab time</td><td class="num">3.0 studs · 1.4 s</td><td class="num">3.5 · 1.2 s</td><td class="num">4.0 · 1.0 s</td></tr>
+        <tr><td>Report confidence half-life</td><td class="num">20 s</td><td class="num">30 s</td><td class="num">40 s</td></tr>
+        <tr><td>Cutoff look-ahead · hiding spots per officer</td><td class="num">off · 1</td><td class="num">2 junctions · 2</td><td class="num">3 junctions · 2</td></tr>
+        <tr><td>Heading bias duration</td><td class="num">4 s</td><td class="num">6 s</td><td class="num">8 s</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 7 -->
+<section id="arrest">
+  <div class="section-head"><span class="section-no">7</span><h2>Arrest and getaway integration</h2></div>
+  <h3 id="arrest-flow">Arrest</h3>
+  <ul>
+    <li><strong>Conditions</strong>, all checked on the server: the officer is briefed on an open case for this player, has line of sight and has confirmed them; distance ≤ 3.5 studs; the player isn't immune or already being arrested; the officer isn't staggered.</li>
+    <li><strong>Sequence:</strong> a 0.25 s telegraphed reach, then a <strong>grab</strong> lasting 1.2 s during which the player moves at 60%. If they get beyond 4.5 studs, the grab breaks. Otherwise comes a 0.8 s <strong>restrain</strong> (player locked, cuffing animation), then processing.</li>
+    <li><strong>Escape opportunity:</strong> breaking free depends on movement and position, not button-mashing, so it works on mobile. Open ground and obstacles help; corners and dead ends don't.</li>
+    <li><strong>No stunlocks:</strong> after a failed grab the officer staggers for 0.6 s and can't grab again for 2 s. The player is immune to <em>every</em> officer for 1.5 s.</li>
+    <li><strong>Cancellation:</strong> distance past 4.5 studs, line of sight lost, officer staggered (burst-out), player disconnects, or the case resolves first.</li>
+    <li><strong>One attempt per player:</strong> each attempt gets an arrest token, and completion is idempotent.</li>
+    <li><strong>Consequences through adapters:</strong> confiscate phones stolen in this case (or per your existing rules), apply existing fines and cooldowns, fail the active mission, no getaway XP.</li>
+    <li><strong>Understandable:</strong> the arrest screen shows the case timeline. For example: "Reported by a witness on Market Lane · seen by PC Hale on Kings Road · lost at Cobble Row · found by the bins · caught at Hollow Street."</li>
+  </ul>
+  <h3 id="getaway">Getaway</h3>
+  <div class="formula wide">CaseResolved { caseId, userId, outcome, maxLevel, pursuitSeconds, searchSeconds, sightings, reports, closedAt }
+outcome  : Evaded     police confirmed the suspect at least once, then lost them  → getaway XP eligible
+           Unsolved   police never confirmed the suspect                          → no getaway XP
+           Arrested   arrest completed                                            → existing penalties
+           Abandoned  suspect disconnected during the case                        → no rewards</div>
+  <p>The reward ledger keys on <code>caseId</code>, so an outcome can't pay twice, whatever happens with doors, rejoins or lag. The XP system decides amounts and can scale them by <code>maxLevel</code> and pursuit time.</p>
+</section>
+
+<!-- 8 -->
+<section id="apartment">
+  <div class="section-head"><span class="section-no">8</span><h2>Apartment-entry security contract</h2></div>
+  <div class="formula wide">ApartmentGate.CanEnter(player)   → ok, reason
+ApartmentGate.CanRevealPhones(player) → ok, reason
+both are server-only, read-only, and never yield between checking and committing</div>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Reason code</th><th>Denied when</th><th>Player sees</th></tr></thead>
+      <tbody>
+        <tr><td><code>CASE_PURSUIT</code></td><td>Any case for this player in Pursuit</td><td>"You can't go in while the police are chasing you."</td></tr>
+        <tr><td><code>CASE_SEARCH</code></td><td>Any case in Search</td><td>"Police are searching for you. Lose them first."</td></tr>
+        <tr><td><code>CASE_RESPONDING</code></td><td>Any case Responding or Investigating</td><td>"Police are on their way. Lie low."</td></tr>
+        <tr><td><code>ARREST_IN_PROGRESS</code></td><td>Grabbed, restrained or processing</td><td>—</td></tr>
+        <tr><td><code>CIVILIAN_CHASE</code></td><td>A civilian is chasing this player (Incident Service live chase)</td><td>"Someone's chasing you."</td></tr>
+        <tr><td><code>TRANSITION_LOCK</code></td><td>Already entering or leaving</td><td>—</td></tr>
+        <tr><td><code>TOO_FAR</code> · <code>RATE_LIMITED</code></td><td>Server-side door distance check failed; door spam</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><strong>Allowed</strong> when no case is open above L0, no arrest is in progress and no civilian is chasing. An L0 case (no unit ever came) doesn't block entry; entering closes it as Unsolved with no getaway XP.</li>
+    <li><strong>No side effects:</strong> entering never changes heat, cases or search state. Leaving puts the player back into whatever is still open.</li>
+    <li><strong>Phone reveals</strong> need the player inside <em>and</em> no open case. If a late 999 call opens a case while the player is already inside, reveals pause until it resolves, with the message "Police are looking into your last theft. Lie low."</li>
+    <li><strong>Rewards:</strong> doors grant nothing; only <code>CaseResolved</code> pays, once.</li>
+    <li><strong>Simultaneous door and arrest:</strong> entry requires state Free with no open case, and an arrest requires an open case. Both transitions are checked and committed in one uninterrupted step on the server, so they can't both succeed. During the 0.5 s entering lock no grab can start.</li>
+    <li><strong>How police tell the gate:</strong> the gate calls <code>PoliceCaseService:GetPlayerStatus(player)</code> and <code>IncidentService:IsBeingChased(player)</code> at request time and never caches. A <code>StatusChanged</code> signal and a <code>CrimeStatus</code> attribute on the Player drive the HUD.</li>
+    <li><strong>Disconnect to dodge:</strong> the case closes as Abandoned. The design recommends flagging that case's phones for confiscation on the next join (your call, <a href="#first">section 16</a>).</li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section id="multiplayer">
+  <div class="section-head"><span class="section-no">9</span><h2>Multiplayer design</h2></div>
+  <ul>
+    <li><strong>One case per suspect.</strong> Cases never share heat, arrest state, inventory or XP.</li>
+    <li><strong>Clusters for efficiency:</strong> thefts within 15 s and 25 studs of each other are linked into a cluster. Dispatch can cover both scenes with nearby units and the squad coordinates across both, but each case keeps its own knowledge, occupancy map and outcome.</li>
+    <li><strong>One primary case per officer.</strong> An officer may assist another case only if its own suspect hasn't been confirmed for 3 s and it confirms the other suspect within 20 studs while that case has fewer than its minimum pursuers. Assists are logged. After switching, an officer commits for at least 3 s.</li>
+    <li><strong>Innocents are safe:</strong> identification only works on a case's suspect. An innocent player in a search area may get a short look, which is a free decoy for a friend.</li>
+    <li><strong>Body-blocking:</strong> an officer blocked by any player for 2 s says "Move aside, please!" and re-routes. Collisions stay on.</li>
+  </ul>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Situation</th><th>Handling</th></tr></thead>
+      <tbody>
+        <tr><td>Two players rob different civilians</td><td>Two cases; nearest units by ETA; per-case minimum service</td></tr>
+        <tr><td>Friends escape together</td><td>Two cases in one cluster; squad may split pursuers; outcomes independent</td></tr>
+        <tr><td>One caught, the other escapes</td><td>The arresting officer is busy processing for about 10 s, easing pressure on the friend; penalties and XP stay with each case</td></tr>
+        <tr><td>Several suspects enter the same alley</td><td>One squad for the cluster; each officer targets its primary case's suspect first; each case keeps its own occupancy map</td></tr>
+        <tr><td>Officers deciding whom to pursue</td><td>Primary case first, assist rules second, never an unidentified player</td></tr>
+        <tr><td>A player disconnects mid-pursuit</td><td>Case Abandoned; units released; optional confiscation flag</td></tr>
+        <tr><td>Many incidents at once</td><td>Priority queue, caps and minimums; L1 cases may wait or go unanswered</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="vehicles">
+  <div class="section-head"><span class="section-no">10</span><h2>Vehicle pursuit expansion architecture</h2></div>
+  <p>Vehicles plug into the same Dispatch, Case and knowledge model as a new unit type. The on-foot system never depends on them.</p>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Module</th><th>Responsibility</th></tr></thead>
+      <tbody>
+        <tr><td><strong>RoadNet</strong></td><td>Directed lane graph: speed limits, lane widths, intersections, allowed turns, optional signals. Separate from PoliceNet.</td></tr>
+        <tr><td><strong>Driver brain</strong></td><td>States: patrol drive, respond (lights and siren), follow, intercept, roadblock, PIT attempt, road search, dismount.</td></tr>
+        <tr><td><strong>Vehicle controller</strong></td><td>A real physics chassis driven by the server: pure-pursuit steering to a lookahead point that grows with speed, a target-speed profile that slows for curves, forward shapecasts for obstacles, and a reverse-and-replan stuck recovery.</td></tr>
+        <tr><td><strong>Road occupancy</strong></td><td>The same search model on RoadNet, at vehicle speeds.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><strong>Detecting a suspect entering a vehicle</strong> is a perception event. It upgrades the case and asks Dispatch for car units.</li>
+    <li><strong>Traffic:</strong> civilian traffic (if any) yields to sirens. Police avoid ramming civilians and slow at blind junctions.</li>
+    <li><strong>PIT maneuvers</strong> only at the highest vehicle tier: speed within a band, a straight segment, nobody else within 30 studs, the police front bumper at the suspect's rear quarter, a 20 s cooldown, and backing off on failure.</li>
+    <li><strong>Abandoned vehicle:</strong> the car becomes the LKP, officers dismount, and the on-foot search takes over, seeded at the car.</li>
+    <li><strong>Performance:</strong> at most 2–4 active police cars, server network ownership (exploit-safe, at the cost of slight smoothing), simplified collision, despawn when far.</li>
+  </ul>
+  <div class="tbl wide">
+    <table class="minw-s">
+      <thead><tr><th>Phase</th><th>Adds</th></tr></thead>
+      <tbody>
+        <tr><td>V0</td><td>Response cars drive to scenes on RoadNet; officers get out; no vehicle pursuit</td></tr>
+        <tr><td>V1</td><td>Follow pursuits: keep line of sight, radio, hand off to foot units</td></tr>
+        <tr><td>V2</td><td>Intercepts at junctions, roadblocks, road search</td></tr>
+        <tr><td>V3</td><td>PIT and tire deflation at the top tier only (the CrimeLogic-style layer)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Introduce V0 only after on-foot police are stable (milestone P4) <em>and</em> players can own vehicles.</p>
+</section>
+
+<!-- 11 -->
+<section id="diagrams">
+  <div class="section-head"><span class="section-no">11</span><h2>Seven diagrams</h2></div>
+  <p>All seven render from the Mermaid source beneath them. Each was checked in two Mermaid versions.</p>
+
+  <h3 id="diagram-a">Diagram A · Complete police AI architecture</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  subgraph IN["Inputs"]
+    THEFT["TheftService&lt;br/&gt;validated steals"]
+    INC["Incident Service&lt;br/&gt;witness calls · statements"]
+    HEAT["Heat system&lt;br/&gt;existing"]
+  end
+
+  subgraph DISP["Dispatch · one per server"]
+    CASES["Case Manager&lt;br/&gt;one case per suspect"]
+    ESC["Escalation&lt;br/&gt;levels L0 to L4"]
+    ALLOC["Unit Allocator&lt;br/&gt;priority · ETA · approach angle"]
+  end
+
+  subgraph SQUAD["Case squad · per case"]
+    KB["Case knowledge&lt;br/&gt;status · LKP · confidence"]
+    ROLES["Role assigner&lt;br/&gt;pursuer · cutoff · searcher · holder"]
+    SEARCH["Search planner&lt;br/&gt;occupancy on PoliceNet"]
+  end
+
+  WORLD["Players and civilians&lt;br/&gt;bodies · movement · noise"]
+
+  subgraph OFF["Officer brain · per NPC"]
+    PER["Perception&lt;br/&gt;vision · hearing · identification"]
+    OBB["Officer blackboard&lt;br/&gt;own sightings · role · stamina"]
+    FSM["State machine&lt;br/&gt;Patrol · Respond · Investigate&lt;br/&gt;Pursue · Search · Arrest · Return"]
+    LOC["Navigation&lt;br/&gt;PoliceNet A* · path queue · unstick"]
+  end
+
+  ARREST["Arrest Service&lt;br/&gt;grab · restrain · confiscate"]
+  OUT["Existing systems via adapters&lt;br/&gt;XP ledger · apartment gate"]
+  CL["Clients&lt;br/&gt;animation · radio audio · HUD"]
+
+  THEFT --&gt; CASES
+  INC --&gt;|"reports"| CASES
+  HEAT --&gt;|"heat tier"| ESC
+  CASES --&gt; ESC
+  CASES --&gt; ALLOC
+  CASES --&gt;|"opens"| KB
+  ESC --&gt; ROLES
+  KB --&gt; ROLES
+  KB --&gt; SEARCH
+  KB &lt;--&gt;|"radio: sightings up,&lt;br/&gt;briefings down after ~1 s"| OBB
+  ROLES ~~~ WORLD
+  SEARCH ~~~ WORLD
+  WORLD --&gt; PER
+  PER --&gt; OBB
+  ALLOC --&gt;|"assignment"| FSM
+  ROLES --&gt;|"role"| FSM
+  SEARCH --&gt;|"target node"| FSM
+  OBB --&gt; FSM
+  FSM --&gt; LOC
+  FSM --&gt;|"grab request"| ARREST
+  ARREST --&gt;|"result"| OUT
+  CASES -.-&gt;|"status · outcome once"| OUT
+  FSM --&gt;|"attributes · radio ids"| CL</pre></div>
+    <figcaption><strong>How to read it:</strong> crime events enter Dispatch at the top. Dispatch opens a case, sets its level and assigns units. The case squad owns the shared belief and turns it into roles and search targets. Officers sense the world, exchange knowledge with the case by radio (with delay) and act. Outcomes reach existing systems once.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-a">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  subgraph IN["Inputs"]
+    THEFT["TheftService&lt;br/&gt;validated steals"]
+    INC["Incident Service&lt;br/&gt;witness calls · statements"]
+    HEAT["Heat system&lt;br/&gt;existing"]
+  end
+
+  subgraph DISP["Dispatch · one per server"]
+    CASES["Case Manager&lt;br/&gt;one case per suspect"]
+    ESC["Escalation&lt;br/&gt;levels L0 to L4"]
+    ALLOC["Unit Allocator&lt;br/&gt;priority · ETA · approach angle"]
+  end
+
+  subgraph SQUAD["Case squad · per case"]
+    KB["Case knowledge&lt;br/&gt;status · LKP · confidence"]
+    ROLES["Role assigner&lt;br/&gt;pursuer · cutoff · searcher · holder"]
+    SEARCH["Search planner&lt;br/&gt;occupancy on PoliceNet"]
+  end
+
+  WORLD["Players and civilians&lt;br/&gt;bodies · movement · noise"]
+
+  subgraph OFF["Officer brain · per NPC"]
+    PER["Perception&lt;br/&gt;vision · hearing · identification"]
+    OBB["Officer blackboard&lt;br/&gt;own sightings · role · stamina"]
+    FSM["State machine&lt;br/&gt;Patrol · Respond · Investigate&lt;br/&gt;Pursue · Search · Arrest · Return"]
+    LOC["Navigation&lt;br/&gt;PoliceNet A* · path queue · unstick"]
+  end
+
+  ARREST["Arrest Service&lt;br/&gt;grab · restrain · confiscate"]
+  OUT["Existing systems via adapters&lt;br/&gt;XP ledger · apartment gate"]
+  CL["Clients&lt;br/&gt;animation · radio audio · HUD"]
+
+  THEFT --&gt; CASES
+  INC --&gt;|"reports"| CASES
+  HEAT --&gt;|"heat tier"| ESC
+  CASES --&gt; ESC
+  CASES --&gt; ALLOC
+  CASES --&gt;|"opens"| KB
+  ESC --&gt; ROLES
+  KB --&gt; ROLES
+  KB --&gt; SEARCH
+  KB &lt;--&gt;|"radio: sightings up,&lt;br/&gt;briefings down after ~1 s"| OBB
+  ROLES ~~~ WORLD
+  SEARCH ~~~ WORLD
+  WORLD --&gt; PER
+  PER --&gt; OBB
+  ALLOC --&gt;|"assignment"| FSM
+  ROLES --&gt;|"role"| FSM
+  SEARCH --&gt;|"target node"| FSM
+  OBB --&gt; FSM
+  FSM --&gt; LOC
+  FSM --&gt;|"grab request"| ARREST
+  ARREST --&gt;|"result"| OUT
+  CASES -.-&gt;|"status · outcome once"| OUT
+  FSM --&gt;|"attributes · radio ids"| CL</pre><button type="button" class="copy" data-target="src-a">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-b">Diagram B · Officer decision workflow</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  PAT(["PATROL&lt;br/&gt;walk a beat · watch"])
+  RES["RESPOND&lt;br/&gt;travel to the report&lt;br/&gt;radio en route"]
+  INV["INVESTIGATE&lt;br/&gt;talk to witnesses&lt;br/&gt;scan the scene"]
+  PUR["PURSUE&lt;br/&gt;chase · cutoff · peek"]
+  SEA["SEARCH&lt;br/&gt;sweep · hold · inspect"]
+  ARR["ARREST&lt;br/&gt;grab · restrain"]
+  RET["RETURN&lt;br/&gt;back to beat or station"]
+  PAT --&gt;|"assigned by dispatch"| RES
+  PAT --&gt;|"hears a disturbance"| INV
+  PAT --&gt;|"sees a crime, or&lt;br/&gt;identifies a briefed suspect"| PUR
+  RES --&gt;|"arrived"| INV
+  RES --&gt;|"identifies suspect en route"| PUR
+  INV --&gt;|"suspect identified"| PUR
+  INV --&gt;|"statement gives a heading"| SEA
+  INV --&gt;|"no leads after 45 s"| RET
+  PUR --&gt;|"within arrest range"| ARR
+  PUR --&gt;|"unseen for 2.5 s"| SEA
+  SEA --&gt;|"reacquired or found"| PUR
+  SEA --&gt;|"search ended"| RET
+  ARR --&gt;|"suspect broke free"| PUR
+  ARR --&gt;|"arrest complete"| RET
+  RET --&gt;|"back on beat"| PAT
+  classDef patrol stroke:#2e7a4f,stroke-width:3px
+  classDef respond stroke:#2f6690,stroke-width:3px
+  classDef investigate stroke:#1f7a7a,stroke-width:3px
+  classDef pursue stroke:#b4271f,stroke-width:3px
+  classDef search stroke:#6d4aa0,stroke-width:3px
+  classDef arrest stroke:#16191d,stroke-width:3px
+  classDef ret stroke:#7a828c,stroke-width:3px
+  class PAT patrol
+  class RES respond
+  class INV investigate
+  class PUR pursue
+  class SEA search
+  class ARR arrest
+  class RET ret</pre></div>
+    <figcaption><strong>How to read it:</strong> border colors match the state chips in section 2. Every transition is triggered by something the officer perceived or was told.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-b">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  PAT(["PATROL&lt;br/&gt;walk a beat · watch"])
+  RES["RESPOND&lt;br/&gt;travel to the report&lt;br/&gt;radio en route"]
+  INV["INVESTIGATE&lt;br/&gt;talk to witnesses&lt;br/&gt;scan the scene"]
+  PUR["PURSUE&lt;br/&gt;chase · cutoff · peek"]
+  SEA["SEARCH&lt;br/&gt;sweep · hold · inspect"]
+  ARR["ARREST&lt;br/&gt;grab · restrain"]
+  RET["RETURN&lt;br/&gt;back to beat or station"]
+  PAT --&gt;|"assigned by dispatch"| RES
+  PAT --&gt;|"hears a disturbance"| INV
+  PAT --&gt;|"sees a crime, or&lt;br/&gt;identifies a briefed suspect"| PUR
+  RES --&gt;|"arrived"| INV
+  RES --&gt;|"identifies suspect en route"| PUR
+  INV --&gt;|"suspect identified"| PUR
+  INV --&gt;|"statement gives a heading"| SEA
+  INV --&gt;|"no leads after 45 s"| RET
+  PUR --&gt;|"within arrest range"| ARR
+  PUR --&gt;|"unseen for 2.5 s"| SEA
+  SEA --&gt;|"reacquired or found"| PUR
+  SEA --&gt;|"search ended"| RET
+  ARR --&gt;|"suspect broke free"| PUR
+  ARR --&gt;|"arrest complete"| RET
+  RET --&gt;|"back on beat"| PAT
+  classDef patrol stroke:#2e7a4f,stroke-width:3px
+  classDef respond stroke:#2f6690,stroke-width:3px
+  classDef investigate stroke:#1f7a7a,stroke-width:3px
+  classDef pursue stroke:#b4271f,stroke-width:3px
+  classDef search stroke:#6d4aa0,stroke-width:3px
+  classDef arrest stroke:#16191d,stroke-width:3px
+  classDef ret stroke:#7a828c,stroke-width:3px
+  class PAT patrol
+  class RES respond
+  class INV investigate
+  class PUR pursue
+  class SEA search
+  class ARR arrest
+  class RET ret</pre><button type="button" class="copy" data-target="src-b">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-c">Diagram C · Witness-to-dispatch workflow</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  T(["Phone snatched"]) --&gt; WHO{"Who perceived it?"}
+  WHO --&gt;|"an officer"| DIRECT["Officer confirms on the spot&lt;br/&gt;case opens at L2"]
+  WHO --&gt;|"civilians"| CIV["Citizen Brain picks&lt;br/&gt;Call 999 · Shout · Statement"]
+  CIV --&gt;|"Call 999 · 6 s · interruptible"| CALL["Report: spot · heading · age&lt;br/&gt;quality: saw 0.6 · heard 0.3"]
+  CIV --&gt;|"Shout near an officer"| HEARD["Officer hears it&lt;br/&gt;goes to look"]
+  CALL --&gt; PROC["Dispatch processing&lt;br/&gt;3 to 8 s"]
+  PROC --&gt; OPEN{"Suspect already&lt;br/&gt;has an open case?"}
+  OPEN --&gt;|"yes"| ATT["Attach report&lt;br/&gt;repeat count +1"]
+  OPEN --&gt;|"no"| NEW["Open case&lt;br/&gt;severity · evidence · heat"]
+  ATT --&gt; FREE{"Unit available?"}
+  NEW --&gt; FREE
+  FREE --&gt;|"no"| LOG["L0 logged&lt;br/&gt;unsolved after 45 s"]
+  FREE --&gt;|"yes"| PICK["Choose unit&lt;br/&gt;lowest ETA · approach angle&lt;br/&gt;never a fresh spawn in view"]
+  PICK --&gt; BRIEF["Radio briefing&lt;br/&gt;description quality · heading"]
+  BRIEF --&gt; GO["RESPOND · then INVESTIGATE&lt;br/&gt;witness statement refreshes&lt;br/&gt;spot and heading"]
+  HEARD --&gt; GO
+  GO --&gt; NEXT{"Suspect identified?"}
+  NEXT --&gt;|"yes"| PUR["PURSUE"]
+  NEXT --&gt;|"no, heading known"| SRCH["SEARCH from the report"]
+  NEXT --&gt;|"no leads"| UNS["Unsolved after 45 s"]
+  DIRECT --&gt; PUR</pre></div>
+    <figcaption><strong>How to read it:</strong> civilians decide whether and how to report (Citizen Brain). Each route adds its own delay and quality. Dispatch merges reports into the suspect's case and picks a unit that could plausibly arrive.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-c">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  T(["Phone snatched"]) --&gt; WHO{"Who perceived it?"}
+  WHO --&gt;|"an officer"| DIRECT["Officer confirms on the spot&lt;br/&gt;case opens at L2"]
+  WHO --&gt;|"civilians"| CIV["Citizen Brain picks&lt;br/&gt;Call 999 · Shout · Statement"]
+  CIV --&gt;|"Call 999 · 6 s · interruptible"| CALL["Report: spot · heading · age&lt;br/&gt;quality: saw 0.6 · heard 0.3"]
+  CIV --&gt;|"Shout near an officer"| HEARD["Officer hears it&lt;br/&gt;goes to look"]
+  CALL --&gt; PROC["Dispatch processing&lt;br/&gt;3 to 8 s"]
+  PROC --&gt; OPEN{"Suspect already&lt;br/&gt;has an open case?"}
+  OPEN --&gt;|"yes"| ATT["Attach report&lt;br/&gt;repeat count +1"]
+  OPEN --&gt;|"no"| NEW["Open case&lt;br/&gt;severity · evidence · heat"]
+  ATT --&gt; FREE{"Unit available?"}
+  NEW --&gt; FREE
+  FREE --&gt;|"no"| LOG["L0 logged&lt;br/&gt;unsolved after 45 s"]
+  FREE --&gt;|"yes"| PICK["Choose unit&lt;br/&gt;lowest ETA · approach angle&lt;br/&gt;never a fresh spawn in view"]
+  PICK --&gt; BRIEF["Radio briefing&lt;br/&gt;description quality · heading"]
+  BRIEF --&gt; GO["RESPOND · then INVESTIGATE&lt;br/&gt;witness statement refreshes&lt;br/&gt;spot and heading"]
+  HEARD --&gt; GO
+  GO --&gt; NEXT{"Suspect identified?"}
+  NEXT --&gt;|"yes"| PUR["PURSUE"]
+  NEXT --&gt;|"no, heading known"| SRCH["SEARCH from the report"]
+  NEXT --&gt;|"no leads"| UNS["Unsolved after 45 s"]
+  DIRECT --&gt; PUR</pre><button type="button" class="copy" data-target="src-c">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-d">Diagram D · Pursuit and line-of-sight workflow</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  SCAN["Vision scan&lt;br/&gt;60 studs · 120° · 6-stud bubble"] --&gt; LOS{"Line of sight to&lt;br/&gt;head or torso?"}
+  LOS --&gt;|"no"| SCAN
+  LOS --&gt;|"yes"| BRF{"Officer briefed on a&lt;br/&gt;case for this player?"}
+  BRF --&gt;|"no"| PERSON["Just a person&lt;br/&gt;maybe a glance"]
+  BRF --&gt;|"yes"| IDB["Identification builds&lt;br/&gt;description × distance × behavior"]
+  IDB --&gt;|"reaches 1.0"| CONF["CONFIRMED&lt;br/&gt;react after 0.45 s"]
+  CONF --&gt; CHASE["Chase&lt;br/&gt;direct when clear, else graph path&lt;br/&gt;radio update every 2 s"]
+  CHASE --&gt;|"within 3.5 studs"| GRAB["Arrest attempt"]
+  CHASE --&gt;|"line of sight broken"| OCC["OCCLUDED · up to 2.5 s&lt;br/&gt;run to predicted point · peek"]
+  OCC --&gt;|"seen again"| CHASE
+  OCC --&gt;|"nothing at the corner"| LKP["LAST SEEN&lt;br/&gt;LKP + heading to the case&lt;br/&gt;radio: lost visual"]
+  LKP --&gt; SRCH["SEARCH · Diagram E"]
+  SRCH --&gt;|"reacquired"| CHASE
+  SRCH --&gt;|"confidence spent"| LOST["LOST&lt;br/&gt;case evaded"]</pre></div>
+    <figcaption><strong>How to read it:</strong> knowledge drops one rung at a time: confirmed, occluded, last seen, lost. Officers only move up the ladder by seeing the suspect again.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-d">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  SCAN["Vision scan&lt;br/&gt;60 studs · 120° · 6-stud bubble"] --&gt; LOS{"Line of sight to&lt;br/&gt;head or torso?"}
+  LOS --&gt;|"no"| SCAN
+  LOS --&gt;|"yes"| BRF{"Officer briefed on a&lt;br/&gt;case for this player?"}
+  BRF --&gt;|"no"| PERSON["Just a person&lt;br/&gt;maybe a glance"]
+  BRF --&gt;|"yes"| IDB["Identification builds&lt;br/&gt;description × distance × behavior"]
+  IDB --&gt;|"reaches 1.0"| CONF["CONFIRMED&lt;br/&gt;react after 0.45 s"]
+  CONF --&gt; CHASE["Chase&lt;br/&gt;direct when clear, else graph path&lt;br/&gt;radio update every 2 s"]
+  CHASE --&gt;|"within 3.5 studs"| GRAB["Arrest attempt"]
+  CHASE --&gt;|"line of sight broken"| OCC["OCCLUDED · up to 2.5 s&lt;br/&gt;run to predicted point · peek"]
+  OCC --&gt;|"seen again"| CHASE
+  OCC --&gt;|"nothing at the corner"| LKP["LAST SEEN&lt;br/&gt;LKP + heading to the case&lt;br/&gt;radio: lost visual"]
+  LKP --&gt; SRCH["SEARCH · Diagram E"]
+  SRCH --&gt;|"reacquired"| CHASE
+  SRCH --&gt;|"confidence spent"| LOST["LOST&lt;br/&gt;case evaded"]</pre><button type="button" class="copy" data-target="src-d">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-e">Diagram E · Coordinated search</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  LKP(["Last seen at the alley mouth&lt;br/&gt;heading north"]) --&gt; BEL["Shared belief · updated every 0.5 s&lt;br/&gt;1 · spread at running pace, away from the LKP&lt;br/&gt;2 · zero nodes any officer can see · bins excepted&lt;br/&gt;3 · add evidence: noise ×3, reports reseed&lt;br/&gt;4 · renormalize and group into clusters"]
+  BEL --&gt; C1["North exit cluster&lt;br/&gt;p 0.48"]
+  BEL --&gt; C2["East gap cluster&lt;br/&gt;p 0.30"]
+  BEL --&gt; C3["Alley bins&lt;br/&gt;p 0.11 · 0.07 · 0.05"]
+  C1 --&gt;|"highest p per second of travel"| OA["Officer A&lt;br/&gt;sweeps north, peeks each corner"]
+  C2 --&gt;|"next best, unclaimed"| OB["Officer B&lt;br/&gt;sweeps the east gap"]
+  C3 -.-&gt;|"under 0.20, no evidence"| SHUT["Bins stay shut&lt;br/&gt;re-scored every tick"]
+  C3 --&gt;|"p ≥ 0.20, or evidence and p ≥ 0.10"| OPEN["Nearest free officer opens one&lt;br/&gt;2 s, telegraphed · max 2 each"]
+  OA --&gt;|"radio: clear"| BEL
+  OB --&gt;|"radio: clear"| BEL
+  OPEN --&gt;|"empty: clear"| BEL
+  OPEN --&gt;|"occupied"| FOUND["Found · 0.8 s burst-out window&lt;br/&gt;then PURSUE"]
+  OA --&gt;|"suspect seen"| PUR["PURSUE"]
+  BEL --&gt; END{"Unseen for T-min and local&lt;br/&gt;max under 0.15, or T-max?"}
+  END --&gt;|"yes"| EVD(["Case evaded&lt;br/&gt;officers return to patrol"])</pre></div>
+    <figcaption><strong>How to read it:</strong> the numbers come from the alley simulation in Scenario 2. Officers divide the likely areas by probability per second of travel, never by the player's real position. Each "clear" reshapes the belief for everyone.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-e">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  LKP(["Last seen at the alley mouth&lt;br/&gt;heading north"]) --&gt; BEL["Shared belief · updated every 0.5 s&lt;br/&gt;1 · spread at running pace, away from the LKP&lt;br/&gt;2 · zero nodes any officer can see · bins excepted&lt;br/&gt;3 · add evidence: noise ×3, reports reseed&lt;br/&gt;4 · renormalize and group into clusters"]
+  BEL --&gt; C1["North exit cluster&lt;br/&gt;p 0.48"]
+  BEL --&gt; C2["East gap cluster&lt;br/&gt;p 0.30"]
+  BEL --&gt; C3["Alley bins&lt;br/&gt;p 0.11 · 0.07 · 0.05"]
+  C1 --&gt;|"highest p per second of travel"| OA["Officer A&lt;br/&gt;sweeps north, peeks each corner"]
+  C2 --&gt;|"next best, unclaimed"| OB["Officer B&lt;br/&gt;sweeps the east gap"]
+  C3 -.-&gt;|"under 0.20, no evidence"| SHUT["Bins stay shut&lt;br/&gt;re-scored every tick"]
+  C3 --&gt;|"p ≥ 0.20, or evidence and p ≥ 0.10"| OPEN["Nearest free officer opens one&lt;br/&gt;2 s, telegraphed · max 2 each"]
+  OA --&gt;|"radio: clear"| BEL
+  OB --&gt;|"radio: clear"| BEL
+  OPEN --&gt;|"empty: clear"| BEL
+  OPEN --&gt;|"occupied"| FOUND["Found · 0.8 s burst-out window&lt;br/&gt;then PURSUE"]
+  OA --&gt;|"suspect seen"| PUR["PURSUE"]
+  BEL --&gt; END{"Unseen for T-min and local&lt;br/&gt;max under 0.15, or T-max?"}
+  END --&gt;|"yes"| EVD(["Case evaded&lt;br/&gt;officers return to patrol"])</pre><button type="button" class="copy" data-target="src-e">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-f">Diagram F · Multiplayer case management</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  PA["Player A&lt;br/&gt;snatches a phone"] --&gt; CA["Case 40&lt;br/&gt;suspect A"]
+  PB["Player B snatches a phone&lt;br/&gt;6 s later, 20 studs away"] --&gt; CB["Case 41&lt;br/&gt;suspect B"]
+  PC["Player C&lt;br/&gt;innocent, nearby"]
+  PD["Player D&lt;br/&gt;disconnects mid-chase"]
+  CA --- CLU["Cluster C-7&lt;br/&gt;shared scene · separate cases"]
+  CB --- CLU
+  CLU --&gt; DSP["Dispatch&lt;br/&gt;shared unit pool&lt;br/&gt;per-case minimum and cap"]
+  DSP --&gt;|"primary: case 40"| O1["Officer Hale"]
+  DSP --&gt;|"primary: case 41"| O2["Officer Okoro"]
+  O1 --&gt; RA["Case 40: arrested&lt;br/&gt;only A loses case-40 phones"]
+  O2 --&gt; RB["Case 41: evaded&lt;br/&gt;only B earns getaway XP, once"]
+  PC -.-&gt;|"never a suspect"| IG["Officers may glance&lt;br/&gt;never pursue or arrest"]
+  PD --&gt; AB["Case abandoned&lt;br/&gt;officers released"]</pre></div>
+    <figcaption><strong>How to read it:</strong> a cluster shares officers, but every outcome stays with its own case and player.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-f">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  PA["Player A&lt;br/&gt;snatches a phone"] --&gt; CA["Case 40&lt;br/&gt;suspect A"]
+  PB["Player B snatches a phone&lt;br/&gt;6 s later, 20 studs away"] --&gt; CB["Case 41&lt;br/&gt;suspect B"]
+  PC["Player C&lt;br/&gt;innocent, nearby"]
+  PD["Player D&lt;br/&gt;disconnects mid-chase"]
+  CA --- CLU["Cluster C-7&lt;br/&gt;shared scene · separate cases"]
+  CB --- CLU
+  CLU --&gt; DSP["Dispatch&lt;br/&gt;shared unit pool&lt;br/&gt;per-case minimum and cap"]
+  DSP --&gt;|"primary: case 40"| O1["Officer Hale"]
+  DSP --&gt;|"primary: case 41"| O2["Officer Okoro"]
+  O1 --&gt; RA["Case 40: arrested&lt;br/&gt;only A loses case-40 phones"]
+  O2 --&gt; RB["Case 41: evaded&lt;br/&gt;only B earns getaway XP, once"]
+  PC -.-&gt;|"never a suspect"| IG["Officers may glance&lt;br/&gt;never pursue or arrest"]
+  PD --&gt; AB["Case abandoned&lt;br/&gt;officers released"]</pre><button type="button" class="copy" data-target="src-f">Copy source</button></details>
+  </figure>
+
+  <h3 id="diagram-g">Diagram G · Arrest, escape and apartment eligibility</h3>
+  <figure class="wide">
+    <div class="sheet"><pre class="mermaid">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  FREE(["FREE"]) --&gt;|"crime reported or seen"| WANT["WANTED&lt;br/&gt;case unresolved"]
+  WANT --&gt;|"grab within 3.5 studs"| GRAB["BEING GRABBED&lt;br/&gt;1.2 s · slowed to 60%"]
+  GRAB --&gt;|"breaks past 4.5 studs"| WANT
+  GRAB --&gt;|"timer completes"| REST["RESTRAINED&lt;br/&gt;0.8 s · locked"]
+  REST --&gt; PROC["PROCESSING&lt;br/&gt;confiscate · fine · cooldown"]
+  WANT --&gt;|"search ended: evaded"| LEDGER["Reward ledger&lt;br/&gt;getaway XP once per case id"]
+  WANT --&gt;|"police never engaged"| UNS["Unsolved&lt;br/&gt;no getaway XP"]
+  PROC --&gt; FREE2(["FREE"])
+  LEDGER --&gt; FREE2
+  UNS --&gt; FREE2
+  DOOR(["Apartment door used"]) --&gt; GATE{"Apartment gate&lt;br/&gt;server-side, no yields"}
+  GATE --&gt;|"open case · arrest ·&lt;br/&gt;civilian chase · lock"| DENY["Denied with a reason&lt;br/&gt;no state changes"]
+  GATE --&gt;|"all clear"| ENTER["ENTERING&lt;br/&gt;0.5 s transition lock"]
+  ENTER --&gt; INSIDE["IN APARTMENT&lt;br/&gt;phone reveals only while&lt;br/&gt;no case is open"]</pre></div>
+    <figcaption><strong>How to read it:</strong> the left side is the player's crime state; the right side is the door. The gate only reads state, and rewards flow only through the ledger, once per case.</figcaption>
+    <details class="src"><summary>Mermaid source</summary><pre id="src-g">%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  FREE(["FREE"]) --&gt;|"crime reported or seen"| WANT["WANTED&lt;br/&gt;case unresolved"]
+  WANT --&gt;|"grab within 3.5 studs"| GRAB["BEING GRABBED&lt;br/&gt;1.2 s · slowed to 60%"]
+  GRAB --&gt;|"breaks past 4.5 studs"| WANT
+  GRAB --&gt;|"timer completes"| REST["RESTRAINED&lt;br/&gt;0.8 s · locked"]
+  REST --&gt; PROC["PROCESSING&lt;br/&gt;confiscate · fine · cooldown"]
+  WANT --&gt;|"search ended: evaded"| LEDGER["Reward ledger&lt;br/&gt;getaway XP once per case id"]
+  WANT --&gt;|"police never engaged"| UNS["Unsolved&lt;br/&gt;no getaway XP"]
+  PROC --&gt; FREE2(["FREE"])
+  LEDGER --&gt; FREE2
+  UNS --&gt; FREE2
+  DOOR(["Apartment door used"]) --&gt; GATE{"Apartment gate&lt;br/&gt;server-side, no yields"}
+  GATE --&gt;|"open case · arrest ·&lt;br/&gt;civilian chase · lock"| DENY["Denied with a reason&lt;br/&gt;no state changes"]
+  GATE --&gt;|"all clear"| ENTER["ENTERING&lt;br/&gt;0.5 s transition lock"]
+  ENTER --&gt; INSIDE["IN APARTMENT&lt;br/&gt;phone reveals only while&lt;br/&gt;no case is open"]</pre><button type="button" class="copy" data-target="src-g">Copy source</button></details>
+  </figure>
+</section>
+
+<!-- 12 -->
+<section id="scenarios">
+  <div class="section-head"><span class="section-no">12</span><h2>Five gameplay simulations</h2></div>
+  <p>Officers are PC Hale, PC Okoro and Unit 3, all fictional. Times are seconds from the first event, using Standard difficulty and S<sub>p</sub> = 24.</p>
+
+  <h3 id="sc1">Scenario 1 · Simple phone theft</h3>
+  <ol class="timeline wide">
+    <li><time>0.0</time><div class="what"><p>The player snatches a phone on Market Lane. No officer is within sight or within 35 studs of the victim's shout.</p></div></li>
+    <li><time>0.4–6.4</time><div class="what"><p>A witness who saw it rings 999 (Citizen Brain). The call completes.</p><p class="k"><b>Report</b>Market Lane, heading east toward Kings Road, age 1 s, quality 0.6, description 0.6.</p></div></li>
+    <li><time>10.4</time><div class="what"><p>After 4 s of processing, case #12 opens at L1. The only free unit is PC Hale, on patrol 140 studs away (ETA 8.3 s at a jog), approaching along Kings Road from the east.</p><p class="k"><b>Radio</b>"Hale, phone snatch on Market Lane, suspect last seen heading east." It reaches Hale at 11.4.</p><p class="k"><b>Hale knows</b>Reported only: a spot, a heading, a 0.6 description. The belief is seeded at the spot and aged 5 s.</p></div></li>
+    <li><time>19.7</time><div class="what"><p>Hale reaches Kings Road and sees the player walking calmly 40 studs away. Identification builds at 0.22/s.</p></div></li>
+    <li><time>20.7</time><div class="what"><p>The player notices Hale and sprints away. Fleeing doubles the rate, and identification completes 1.5 s later.</p></div></li>
+    <li><time>22.2</time><div class="what"><p>Confirmed: the case goes to L2 and Hale sprints from 22.65.</p><p class="k"><b>Radio</b>"Suspect on foot, northbound on Kings Road!"</p></div></li>
+    <li><time>27.0</time><div class="what"><p>The player, about 48 studs ahead (the gap grows 1.9 studs/s), turns into Cobble Row and is Occluded. Hale runs to the predicted point and peeks at 29.2: Cobble Row bends, and nobody is in sight.</p></div></li>
+    <li><time>29.6</time><div class="what"><p>Last seen. The LKP is the Cobble Row entrance, heading west. Hale sweeps the north arm (highest probability) first, then the south arm, peeking each corner. The player has already left by the far end and is walking calmly.</p></div></li>
+    <li><time>59.6</time><div class="what"><p>30 s without a sighting, and no nearby cluster is above 0.15: the case is <strong>Evaded</strong>.</p><p class="k"><b>Radio</b>"No trace. Resuming patrol."</p><p class="k"><b>Result</b>Getaway XP once; heat +1 per your rules; the apartment is open from now.</p></div></li>
+  </ol>
+  <div class="cols three wide">
+    <div><h4>Fair outcomes</h4><ul><li>The witness's heading explains where Hale came from.</li><li>Breaking line of sight and leaving the likely area works.</li><li>Hiding in the first bin at the corner would have been risky.</li></ul></div>
+    <div><h4>AI failure cases</h4><ul><li>Hale overruns the corner: put peek points at junction nodes.</li><li>A short processing delay makes the response feel psychic: keep a 3 s minimum.</li><li>Identification through a fence gap: flag fences as sight blockers and cap identification range at 70 studs.</li></ul></div>
+    <div><h4>Debug signals</h4><ul><li>Case timeline: Reported 10.4 → Confirmed 22.2 → Occluded 27.0 → Last seen 29.6 → Evaded 59.6.</li><li>Hale's state log, each entry with a reason and source.</li><li>Identification progress graph; occupancy snapshot at 35 s; radio transcript.</li></ul></div>
+  </div>
+
+  <h3 id="sc2">Scenario 2 · Intelligent search</h3>
+  <p class="scenario-setup">Tanner's Yard is an alley with a north exit and an east gap, and three bins: B1 by the mouth, B2 in the middle, B3 at the far end. The player is Confirmed by Hale with Okoro arriving as backup (L2). The numbers come from the simulation in section 5.</p>
+  <ol class="timeline wide">
+    <li><time>0.0</time><div class="what"><p>The player sprints round the corner into the mouth of the alley. Hale, 16 studs behind, loses line of sight. LKP: the alley mouth, heading north.</p></div></li>
+    <li><time>2.0</time><div class="what"><p>The player climbs into B2, 14 studs in. The lid is audible within 14 studs; Hale is 18 studs away and doesn't hear it.</p></div></li>
+    <li><time>2.4</time><div class="what"><p>Hale peeks into the alley: open ground in view, bins concealed, nobody visible. At 2.5 the case moves to Last seen.</p><p class="k"><b>Belief</b>North side 0.48 · east gap 0.30 · bins 0.11 / 0.07 / 0.05.</p></div></li>
+    <li><time>3.5</time><div class="what"><p>Radio delay ends, and the squad assigns roles.</p><p class="k"><b>Decisions</b>Hale takes the north cluster (best probability per second of travel). Okoro takes the east gap (next best, unclaimed). The bins stay shut: all under 0.20 and no evidence.</p></div></li>
+    <li><time>6–11</time><div class="what"><p>Each officer clears their exit. 78% of the probability now lies beyond the exits, and the bins fall to 0.10 / 0.06 / 0.05.</p><p class="k"><b>Radio</b>"North side clear." "East gap clear."</p></div></li>
+    <li><time>11–30</time><div class="what"><p>Warm phase: both sweep the streets beyond. Okoro walks back through the yard at 18 s. The bins are now 0.07 / 0.04 / 0.03 and not worth opening.</p></div></li>
+    <li><time>32.5</time><div class="what"><p>30 s unseen, no local cluster above 0.15: <strong>Evaded</strong>. At 40 s the player climbs out and can go home.</p></div></li>
+  </ol>
+  <p><strong>Variants.</strong> If Hale had been within 14 studs when the lid closed, the evidence would raise B2 to 0.16 against B1's 0.09. That meets "evidence and p ≥ 0.10", so Okoro opens B2 at about 6 s. The player gets the 0.8 s burst-out window and the chase resumes. In a dead-end yard the bins collect everything (0.40 / 0.34 / 0.26 by 9 s), so officers open them in order and the hider is likely caught.</p>
+  <div class="cols three wide">
+    <div><h4>Fair outcomes</h4><ul><li>Hiding works after breaking line of sight, hiding quietly, near unseen exits.</li><li>Noise and dead ends are punished, for reasons the player can see.</li><li>An opened bin always gives a chance to break out.</li></ul></div>
+    <div><h4>AI failure cases</h4><ul><li>A belief that leaks the true position: a test asserts occupancy never reads player positions.</li><li>Officers oscillating between clusters: claims plus a 3 s commitment.</li><li>The same bin opened twice: the case keeps an opened-spots set.</li></ul></div>
+    <div><h4>Debug signals</h4><ul><li>Occupancy heatmap per tick (tester-only node spheres).</li><li>Inspection log with probability, evidence and budget.</li><li>Noise events with who could hear them; claim assignments.</li></ul></div>
+  </div>
+
+  <h3 id="sc3">Scenario 3 · Failed escape at the apartment</h3>
+  <ol class="timeline wide">
+    <li><time>0.0</time><div class="what"><p>Case #31 is in Pursuit. Hale is 12 studs behind as the player heads for their door on Hollow Street.</p></div></li>
+    <li><time>2.5</time><div class="what"><p>The player slows at the door and presses Enter. The server calls <code>CanEnter</code>, which returns false with <code>CASE_PURSUIT</code>. Nothing changes: no teleport and no state mutation.</p><p class="k"><b>Player sees</b>The door rattles. "You can't go in while the police are chasing you."</p></div></li>
+    <li><time>3.1</time><div class="what"><p>The half-second lost at the door lets Hale close to 3.5 studs. A telegraphed reach follows, then the grab at 3.35. Slowed to 60% (14.4 studs/s against Hale's 22.1), the player can't open 4.5 studs of distance.</p></div></li>
+    <li><time>4.55–5.35</time><div class="what"><p>Restrained, then arrested. Processing confiscates the case-31 phones and applies your existing fine and cooldown.</p><p class="k"><b>Arrest card</b>"Seen by PC Hale on Market Lane · chased 41 s · caught at your door. Your apartment stays locked while police are chasing you."</p></div></li>
+  </ol>
+  <p><strong>The alternative branch:</strong> the player skips the door, breaks line of sight at the next corner, the search ends, and they return two minutes later. The gate allows entry, because no case is open. <strong>Race variant:</strong> the grab and the door request land in the same frame. The server handles them in order. The door is denied either way, because the case is unresolved, so there's no double outcome.</p>
+  <div class="cols three wide">
+    <div><h4>Fair outcomes</h4><ul><li>A clear, consistent reason at the door.</li><li>The arrest needs real proximity.</li><li>No lockout after a genuine escape.</li></ul></div>
+    <div><h4>AI failure cases</h4><ul><li>The client opens the door UI before the server replies: always wait for the server.</li><li>Lag lets the player trigger the door from too far: server distance check.</li><li>A grab during the teleport: the entering lock blocks it, and entry is impossible with an open case anyway.</li></ul></div>
+    <div><h4>Debug signals</h4><ul><li>Gate decision log: time, reason, case snapshot.</li><li>Arrest log: distance at grab, break attempts, outcome.</li><li>Server tick ordering for same-frame events.</li></ul></div>
+  </div>
+
+  <h3 id="sc4">Scenario 4 · Cooperative multiplayer</h3>
+  <ol class="timeline wide">
+    <li><time>0 / 6</time><div class="what"><p>Player A snatches a phone at the bus stop. Six seconds later Player B snatches another 20 studs away. That makes cases #40 (A) and #41 (B), linked as cluster C-7.</p></div></li>
+    <li><time>10 / 16</time><div class="what"><p>Reports arrive. A's victim saw everything (description 0.7). B's only witness heard it (description 0.1).</p><p class="k"><b>Dispatch</b>Hale (ETA 9 s) takes #40 as primary. Okoro (ETA 14 s, from the opposite side) takes #41.</p><p class="k"><b>Radio</b>"Two snatches at the bus stop, two suspects."</p></div></li>
+    <li><time>21</time><div class="what"><p>The friends have split: A north, B east. Hale sees A fleeing at 25 studs and identifies them in 0.9 s. Case #40 goes to L2 Pursuit.</p></div></li>
+    <li><time>24</time><div class="what"><p>Okoro reaches the east side. B is walking calmly 30 studs away, and with a 0.1 description, identification would need about 13 s of calm walking in view. B keeps walking, so it never completes. Okoro investigates and searches from the heard-only report.</p></div></li>
+    <li><time>26</time><div class="what"><p>A's chase passes 18 studs from Okoro. Case #41 has no leads, and #40 is Confirmed within 20 studs, so the squad gives Okoro the cutoff role for #40 as a logged assist. Okoro's primary case stays #41.</p></div></li>
+    <li><time>33–35</time><div class="what"><p>Okoro's cutoff at the junction turns A back toward Hale, who grabs and restrains A. Case #40 is Arrested: only A's case-40 phones are confiscated.</p></div></li>
+    <li><time>35–69</time><div class="what"><p>Okoro returns to #41. B is 120 studs away. Case #41 closes as Unsolved 45 s after Okoro reached the scene: no getaway XP for B (police never saw them), B's phones are safe, and the apartment opens once #41 resolves.</p></div></li>
+  </ol>
+  <p><strong>Variants.</strong> Had B sprinted near Okoro, identification would take 3.4 s at 20 studs (fleeing, on scene) and #41 would get its own pursuit. Had a third, innocent friend run with A, no officer could target them. They could body-block (officers re-route after 2 s with "Move aside, please!") but could never be arrested.</p>
+  <div class="cols three wide">
+    <div><h4>Fair outcomes</h4><ul><li>Independent cases, inventories and XP.</li><li>Calm, distant players with weak descriptions can slip away.</li><li>Friends can help each other legitimately.</li></ul></div>
+    <div><h4>AI failure cases</h4><ul><li>Officers flip-flopping between suspects: assist rules plus a 3 s commitment.</li><li>One arrest closing both cases: clusters never merge outcomes.</li><li>B blocked from home indefinitely: Unsolved after 45 s bounds it.</li></ul></div>
+    <div><h4>Debug signals</h4><ul><li>Per-case panels side by side.</li><li>Officer assignment history (primary and assists).</li><li>Cluster membership and dispatch scores.</li></ul></div>
+  </div>
+
+  <h3 id="sc5">Scenario 5 · Escalated pursuit</h3>
+  <ol class="timeline wide">
+    <li><time>0</time><div class="what"><p>Theft #1 opens case #50 at L1. Hale responds but never sees the player.</p></div></li>
+    <li><time>40</time><div class="what"><p>Theft #2 on Station Road while #50 is still open. The report attaches to #50, and the repeat counter makes the case escalate to L3 on confirmation.</p></div></li>
+    <li><time>48</time><div class="what"><p>Hale identifies the player (victim description 0.7, fleeing, 25 studs, 0.9 s). The case goes straight to L3. Dispatch sends Okoro (patrol, ETA 10 s) and Unit 3 from the station, spawned at the station door 160 studs away and out of every player's sight.</p><p class="k"><b>Radio</b>"Two more units en route."</p></div></li>
+    <li><time>50–58</time><div class="what"><p>Hale pursues. The squad makes Okoro the cutoff: from the player's heading, Mill Junction is 4.2 s away for the player and 3.6 s for Okoro, so it's feasible. Okoro runs there and holds.</p></div></li>
+    <li><time>58–61.5</time><div class="what"><p>Seeing Okoro at the junction, the player squeezes through a fence gap, a shortcut edge police don't know. The cutoff fails. Hale loses line of sight at 59, and the case reaches Last seen at 61.5. Nobody saw the gap used, so no probability flows through it.</p></div></li>
+    <li><time>61.5–106.5</time><div class="what"><p>Search with L3 timings (T-min 45 s, T-max 90 s).</p><p class="k"><b>Belief</b>North lane 0.44 · market 0.31 · back yards 0.18.</p><p class="k"><b>Decisions</b>Hale sweeps the north lane, Okoro the market, Unit 3 holds Mill Junction. Each "clear" shrinks the belief, and because the real route isn't in police knowledge, probability drains to "left the area". At 91.5 the level drops to L2 and Unit 3 leaves.</p></div></li>
+    <li><time>106.5</time><div class="what"><p>45 s unseen and no local cluster above 0.15: <strong>Evaded</strong>.</p><p class="k"><b>Radio</b>"Lost the suspect. Resuming patrol."</p><p class="k"><b>Result</b>Getaway XP once (max level L3). Heat rises for two crimes. At 180 the player walks past Okoro: no case is open, so nothing happens.</p></div></li>
+  </ol>
+  <div class="cols three wide">
+    <div><h4>Fair outcomes</h4><ul><li>Reinforcements visibly came from the station.</li><li>Map knowledge (the gap) beat a correct prediction.</li><li>The search ended on its rules, and heat didn't reveal the player afterwards.</li></ul></div>
+    <div><h4>AI failure cases</h4><ul><li>A reinforcement spawning in view: spawn audit.</li><li>A cutoff arriving impossibly early: ETA validation.</li><li>Officers clumping, or a search that never ends: claims and T-max.</li><li>An escalation spiral: level caps per case and per server.</li></ul></div>
+    <div><h4>Debug signals</h4><ul><li>Escalation log with each trigger.</li><li>Spawn audit: distance and line of sight to every player at spawn.</li><li>Cutoff prediction against the actual path; unit release timeline.</li></ul></div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section id="performance">
+  <div class="section-head"><span class="section-no">13</span><h2>Roblox technical architecture and performance</h2></div>
+  <ul>
+    <li><strong>Server authority:</strong> AI decisions, identification, case state, arrests and gate checks all run on the server. Clients render.</li>
+    <li><strong>Clients:</strong> officer animation on a client-created Animator (as Roblox recommends for NPCs), radio audio from bark ids, HUD state from Player attributes (<code>CrimeStatus</code>, <code>ArrestProgress</code>, LKP marker).</li>
+    <li><strong>Scheduling:</strong> one Heartbeat loop shared with the Citizen Brain, with separate budgets: police 0.8 ms per frame, civilians 0.6 ms. Officers think at their state's rate (0.5–10 Hz) with random phase. Steering updates run at 10 Hz in Pursue.</li>
+    <li><strong>Event-based perception:</strong> noise, reports and radio arrive as events. Vision scans run at 5 Hz in Pursue and Search, 2 Hz otherwise.</li>
+    <li><strong>Spatial queries:</strong> candidates come from a distance check against the player list, not part queries. Up to 2 rays per candidate (head, torso), with line-of-sight results cached for 0.2 s while chasing. Use the newer <code>ExcludeInstances</code> / <code>IncludeInstances</code> filters on <code>RaycastParams</code>, which Roblox's physics team describes as much faster for large filter lists.</li>
+    <li><strong>Occupancy at low cost:</strong> node-to-node visibility is precomputed once at server start (around 12,000 rays for 400 nodes, spread at 200 per frame, about one second). Clearing is then a lookup filtered by field of view, with no rays. Each tick touches only graph edges. Cap concurrent searches at 4.</li>
+    <li><strong>Navigation:</strong> PoliceNet A* in Luau handles almost everything. PathfindingService covers rare off-graph moves through a queue (at most 2 in flight, never in a panic). Pathfinding limits (3,000 studs straight line, failure past 20,000 nodes) don't apply to the graph.</li>
+    <li><strong>Failure recovery:</strong> no progress for 1.5 s → sidestep → re-plan with the edge penalized → alternate route → PathfindingService → give up the role and tell the squad. Teleport only if no player can see.</li>
+    <li><strong>Network ownership:</strong> server-owned officers (<code>SetNetworkOwner(nil)</code>), so exploiters can't fling or teleport them.</li>
+    <li><strong>RemoteEvent security:</strong> no client remote can change police state. The door request is validated server-side (distance, cooldown, gate). Break-free is movement-based, so no "struggle" remote exists to spoof. Bark and HUD remotes are server-to-client only.</li>
+    <li><strong>Memory:</strong> a cleanup bag per officer and per case. Case resolution frees occupancy arrays, notes and claims. Logs are ring buffers.</li>
+    <li><strong>Debug instrumentation</strong> (tester-gated): an officer overlay showing state, role, target node and a reason string; a case inspector with knowledge state, LKP, an occupancy heatmap, cleared nodes and inspections; a dispatch log with scores; a spawn audit; metrics (escape rate, median chase time, arrests per hour, stuck events, false identifications, which must be 0); and seeded replays.</li>
+  </ul>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Risk</th><th>Mitigation</th><th>Target to verify</th></tr></thead>
+      <tbody>
+        <tr><td>Raycast bursts in incidents</td><td>Per-frame ray budget; LOS cache; precomputed node visibility</td><td class="num">≤ 120 rays/s with 4 officers</td></tr>
+        <tr><td>Many simultaneous searches</td><td>Cap at 4; 2 Hz ticks; clear arrays on resolve</td><td class="num">≤ 0.2 ms/frame for occupancy</td></tr>
+        <tr><td>Pathfinding spikes</td><td>Graph first; queue; per-officer rate limit</td><td class="num">≤ 2 jobs/s</td></tr>
+        <tr><td>Humanoid physics and replication</td><td>Officer cap; unused states disabled; attributes on change only</td><td class="num">Police ≤ 0.8 ms/frame total</td></tr>
+        <tr><td>Vehicle physics (later)</td><td>2–4 cars; simplified collision; despawn when far</td><td>Profile before V1</td></tr>
+        <tr><td>Leaks across many cases</td><td>Cleanup bags; soak tests</td><td>Flat memory over 100 cases</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 14 -->
+<section id="milestones">
+  <div class="section-head"><span class="section-no">14</span><h2>Implementation milestones</h2></div>
+  <p>Each milestone is sized to hand to Claude Code on its own. P1 is the smallest version that feels intelligent.</p>
+  <div class="stack wide">
+    <article class="ms" id="p1">
+      <header><span class="ms-id">P1</span><h3>One officer who thinks</h3><span class="tag">First playable</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>Nearest-unit dispatch from witness reports (or a stub that turns a theft into a delayed report); case lifecycle; officer states Patrol, Respond, Investigate, Pursue, a short Search (LKP plus the adjacent branches), Arrest, Return; vision, line of sight, reaction and identification; the grab with break-free; the apartment gate; once-only outcomes; basic radio barks; debug overlay.</dd>
+        <dt>Dependencies</dt><dd>Theft event; adapters for heat, XP, arrest and confiscation; PoliceNet markers on the map (the Citizen Brain's pedestrian graph if it exists).</dd>
+        <dt>Modules</dt><dd>PoliceService, DispatchService, CaseService, OfficerBrain, OfficerPerception, OfficerLocomotion, PoliceNet, ArrestService, ApartmentGate, adapters, PoliceClient.</dd>
+        <dt>Data structures</dt><dd>Case, Report, Unit, PlayerCrimeState (section 3); per-officer blackboard.</dd>
+        <dt>Ownership</dt><dd>Server: everything that decides. Client: animation, radio audio, HUD.</dd>
+        <dt>Acceptance tests</dt><dd>Scenarios 1 and 3 reproduce. Omniscience test: with the suspect unseen and no reports, every officer target traces to a logged knowledge source. Arrests never start beyond range. The gate denies during pursuit. XP fires once per case.</dd>
+        <dt>Performance tests</dt><dd>2 officers and 6 players: police ≤ 0.5 ms/frame; flat memory over 50 cases.</dd>
+        <dt>Done when</dt><dd>20 playtests show escapes between 30% and 70% at L1–L2 (balance hypothesis), zero false arrests, and nobody stuck more than 5 s in a 30-minute soak.</dd>
+      </dl>
+    </article>
+    <article class="ms" id="p2">
+      <header><span class="ms-id">P2</span><h3>Search that reasons</h3><span class="tag">MAGALO's identity</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>Occupancy map and node-visibility precompute; hiding spots with the evidence rule, budget and burst-out; noise events; search phases; LKP marker and search status on the HUD; search radio lines.</dd>
+        <dt>Dependencies</dt><dd>P1; hiding-spot and peek-point markers.</dd>
+        <dt>Modules</dt><dd>SearchPlanner, NodeVisibility, NoiseService, HidingSpotService.</dd>
+        <dt>Data structures</dt><dd>Per-case occupancy array, cleared set, opened-spots set, clusters.</dd>
+        <dt>Ownership</dt><dd>Server; HUD markers on client.</dd>
+        <dt>Acceptance tests</dt><dd>Scenario 2 and its variants reproduce in a test alley. Occupancy never reads a player position (dependency test). No bin is opened twice in a search.</dd>
+        <dt>Performance tests</dt><dd>4 concurrent searches ≤ 0.2 ms/frame; precompute ≤ 2 s at start.</dd>
+        <dt>Done when</dt><dd>Testers can explain why a bin was or wasn't opened, and quiet hiders near open exits escape most of the time.</dd>
+      </dl>
+    </article>
+    <article class="ms" id="p3">
+      <header><span class="ms-id">P3</span><h3>Squads and escalation</h3><span class="tag">Coordination</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>Backup requests; roles (pursuer, cutoff, searcher, holder); junction prediction with ETA validation; split and regroup; levels L1–L4 with de-escalation; fair reinforcement spawns.</dd>
+        <dt>Dependencies</dt><dd>P2.</dd>
+        <dt>Modules</dt><dd>SquadService, RoleAssigner, InterceptPredictor, EscalationRules, SpawnAuditor.</dd>
+        <dt>Data structures</dt><dd>Roles and claims per case; escalation triggers log.</dd>
+        <dt>Ownership</dt><dd>Server.</dd>
+        <dt>Acceptance tests</dt><dd>Scenario 5 reproduces; every reinforcement passes the spawn audit; no cutoff arrives earlier than its validated ETA.</dd>
+        <dt>Performance tests</dt><dd>4 officers on one case plus 2 on another: police ≤ 0.8 ms/frame.</dd>
+        <dt>Done when</dt><dd>Two-officer chases visibly coordinate, and a single snatch never exceeds L1 without a sighting.</dd>
+      </dl>
+    </article>
+    <article class="ms" id="p4">
+      <header><span class="ms-id">P4</span><h3>Multiplayer hardening</h3><span class="tag">Busy servers</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>Clusters; assist and switch rules; disconnect handling; per-case caps and minimum service; body-block handling.</dd>
+        <dt>Dependencies</dt><dd>P3.</dd>
+        <dt>Modules</dt><dd>ClusterService; dispatch upgrades.</dd>
+        <dt>Data structures</dt><dd>Cluster membership; assignment history.</dd>
+        <dt>Ownership</dt><dd>Server.</dd>
+        <dt>Acceptance tests</dt><dd>Scenario 4 reproduces; 8-player chaos test has zero cross-case outcomes and zero arrests of innocents.</dd>
+        <dt>Performance tests</dt><dd>12 players, 8 officers, 4 open cases: budgets in section 13.</dd>
+        <dt>Done when</dt><dd>A 30-minute multiplayer soak passes with flat memory and no stuck officers.</dd>
+      </dl>
+    </article>
+    <article class="ms" id="p5">
+      <header><span class="ms-id">P5</span><h3>Difficulty and tuning</h3><span class="tag">Balance</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>Gentle, Standard and Sharp profiles; progression-based difficulty; metrics; seeded replays.</dd>
+        <dt>Dependencies</dt><dd>P4.</dd>
+        <dt>Modules</dt><dd>DifficultyProfiles, PoliceMetrics, ReplayRecorder.</dd>
+        <dt>Data structures</dt><dd>Profile tables; per-case metric records.</dd>
+        <dt>Ownership</dt><dd>Server; dashboards for developers.</dd>
+        <dt>Acceptance tests</dt><dd>Changing a profile changes coordination and search, never speed above 0.95 S<sub>p</sub> or vision through walls.</dd>
+        <dt>Performance tests</dt><dd>Metrics cost under 0.05 ms/frame.</dd>
+        <dt>Done when</dt><dd>Escape-rate targets are met per profile in playtests.</dd>
+      </dl>
+    </article>
+    <article class="ms" id="p6">
+      <header><span class="ms-id">P6</span><h3>Vehicle response (V0)</h3><span class="tag">After player vehicles exist</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>RoadNet; police cars driving to scenes; officers getting out. No vehicle pursuit yet.</dd>
+        <dt>Dependencies</dt><dd>P4 stable; player-owned vehicles shipped.</dd>
+        <dt>Modules</dt><dd>RoadNet, DriverBrain (respond only), VehicleController.</dd>
+        <dt>Data structures</dt><dd>Lane graph; car unit records.</dd>
+        <dt>Ownership</dt><dd>Server-owned cars; client visuals and sirens.</dd>
+        <dt>Acceptance tests</dt><dd>Cars reach scenes without leaving the road or hitting civilians; foot behavior is unchanged.</dd>
+        <dt>Performance tests</dt><dd>3 cars ≤ 0.6 ms/frame; no physics hitching.</dd>
+        <dt>Done when</dt><dd>Response times drop believably on a bigger map.</dd>
+      </dl>
+    </article>
+    <article class="ms" id="p7">
+      <header><span class="ms-id">P7</span><h3>Vehicle pursuit (V1–V3)</h3><span class="tag">Later</span></header>
+      <dl class="kv">
+        <dt>Features</dt><dd>Follow pursuits, intercepts and roadblocks, road search, abandoned-vehicle handoff, then PIT and tire deflation at the top tier.</dd>
+        <dt>Dependencies</dt><dd>P6.</dd>
+        <dt>Modules</dt><dd>DriverBrain (full), RoadOccupancy, PitController.</dd>
+        <dt>Data structures</dt><dd>Road occupancy per case; PIT eligibility state.</dd>
+        <dt>Ownership</dt><dd>Server.</dd>
+        <dt>Acceptance tests</dt><dd>PIT never fires outside its conditions; an abandoned car seeds a foot search.</dd>
+        <dt>Performance tests</dt><dd>4 cars in pursuit within budget.</dd>
+        <dt>Done when</dt><dd>Vehicle chases feel fair in playtests.</dd>
+      </dl>
+    </article>
+  </div>
+</section>
+
+<!-- 15 -->
+<section id="review">
+  <div class="section-head"><span class="section-no">15</span><h2>Critical design review</h2></div>
+  <h3 id="compare">Four architectures compared</h3>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Architecture</th><th>Strengths</th><th>Weaknesses</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td><strong>A. Dispatch + case squads + officer state machines with local utility</strong> (recommended)</td><td>Coordinated but individually fallible officers; one inspectable belief per case; cheap; each layer testable alone</td><td>Three layers to build; the squad's role logic needs tuning</td><td>Best balance of observable intelligence, fairness and cost</td></tr>
+        <tr><td><strong>B. Independent officers with behavior trees</strong></td><td>Simple to start; no central state</td><td>No shared belief, so officers clump, duplicate searches and contradict each other; coordination turns into ad-hoc messaging</td><td>Looks dumb in exactly the moments that matter</td></tr>
+        <tr><td><strong>C. Central tactical director puppeteering every officer</strong></td><td>Strong coordination; easy global optimization</td><td>Feels robotic and perfect, makes few mistakes, spikes CPU, and is one step from omniscience</td><td>Too good to be fair</td></tr>
+        <tr><td><strong>D. GOAP officers with a blackboard</strong></td><td>Flexible emergent plans</td><td>Planning cost, opaque debugging; police plans are short and known</td><td>Overkill</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tbl wide">
+    <table class="minw">
+      <thead><tr><th>Search approach</th><th>Strengths</th><th>Weaknesses</th></tr></thead>
+      <tbody>
+        <tr><td>LKP plus random nearby points</td><td>Trivial</td><td>Looks random; no coordination; can't justify opening a bin</td></tr>
+        <tr><td>Line-of-sight timer with no real search (GTA V style)</td><td>Simple and readable</td><td>Police don't investigate, so MAGALO's best feature disappears</td></tr>
+        <tr><td>Occupancy map on the street graph (recommended from P2)</td><td>Principled, coordinated, explainable, fair hiding rules</td><td>More work; needs tuning and good graph authoring</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>P1 starts with the branch-list search and upgrades to occupancy in P2, so the first playable version isn't blocked on the hardest part.</p>
+
+  <div class="cols wide">
+    <div><h4>Overengineering and unnecessary complexity</h4><ul><li>Occupancy, roles and escalation all at once: phased across P1–P3.</li><li>Rich officer personalities: three small variations are enough.</li><li>Vehicle AI before foot police are fun: deferred to P6.</li><li>A city-wide BOLO network: only from L3, only nearby patrols.</li></ul></div>
+    <div><h4>Unfair behavior and apparent cheating</h4><ul><li>Spawns behind the player: station and edge-of-map only, with an audit.</li><li>Perfect cutoffs: ETA validation, limited look-ahead, no shortcut knowledge.</li><li>Instant identification: description quality and behavior gate it.</li><li>Seeing through fences or foliage: sight-blocker flags.</li><li>Psychic responses: processing and radio delays.</li><li>Unavoidable arrests: telegraph, break-free window, immunity.</li></ul></div>
+    <div><h4>Officers getting stuck</h4><ul><li>Doors, props and crowds: authored graph, the recovery ladder, and civilians stepping aside for running officers (Citizen Brain).</li><li>Unreachable roofs: avoid them in level design or link them with PathfindingLinks; otherwise officers hold the exits.</li></ul></div>
+    <div><h4>Performance bottlenecks</h4><ul><li>Humanoid physics and replication first, then raycasts, occupancy and pathfinding. Each has a budget in section 13.</li></ul></div>
+    <div><h4>Multiplayer race conditions</h4><ul><li>Door against arrest: exclusive states with no yields between check and commit.</li><li>Two officers grabbing one player: one arrest token.</li><li>Evaded and re-sighted in the same frame: Evaded is final; a new crime opens a new case.</li><li>Outcomes processed twice: ledger keyed by case id.</li></ul></div>
+    <div><h4>Excessive response to minor thefts</h4><ul><li>Default L1, one unit.</li><li>L3 and L4 need repeats, long evasion or a spree.</li><li>Per-case and per-server caps.</li></ul></div>
+    <div><h4>Ways players might exploit it</h4><ul><li>Looping a block forever: cutoffs from L3, holds at L4, and no reward until Evaded.</li><li>Hiding in view: an officer who sees the bin entered knows where you are.</li><li>Door camping: the gate.</li><li>Disconnecting to dodge: Abandoned plus the optional confiscation flag.</li><li>Innocent friends as decoys or blockers: allowed, it's fair co-op play.</li><li>Radio-latency dodges: intended skill.</li></ul></div>
+    <div><h4>Better deferred</h4><ul><li>Helicopters, police dogs (scent tracking would break fair hiding), drones and SWAT.</li><li>A CCTV network: very British and a strong future idea if cameras are visible and feed delayed sightings.</li><li>Recognizing players after a case closes (a "be on the lookout" memory): only if you want it, and as a visible, decaying system.</li></ul></div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section id="first">
+  <div class="section-head"><span class="section-no">16</span><h2>Recommendation for the first playable version</h2></div>
+  <p><strong>Build P1, then P2.</strong> P1 gives one or two officers on foot who respond to witness reports with believable delay, notice and identify you by sight, chase with corner peeks, search the obvious branches when they lose you, arrest you fairly or lose you for real, and keep your apartment shut until it's over. P2 adds the occupancy search and hiding spots, which is where MAGALO's police become distinctly its own.</p>
+  <div class="cols wide">
+    <div>
+      <h4>P1 playtest checklist</h4>
+      <ul>
+        <li>Can testers explain why the officer came from where they did?</li>
+        <li>Did anyone feel cheated? Every "cheat" report is a bug or a missing cue.</li>
+        <li>Escape rate between 30% and 70% at L1–L2?</li>
+        <li>Zero arrests of innocent players, zero double rewards.</li>
+        <li>Did the radio and LKP marker help players read the police?</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Decisions for you</h4>
+      <ol>
+        <li>Approve the three-layer architecture and phasing.</li>
+        <li>Getaway XP only for Evaded (police saw you), not for Unsolved?</li>
+        <li>Should an L0 case (no unit came) block apartment entry? Recommended: no.</li>
+        <li>Confiscate an abandoned case's phones on the next join?</li>
+        <li>Show the LKP marker and dispatch summaries to the wanted player? Recommended: yes.</li>
+        <li>Player sprint speed, so S<sub>p</sub>-relative numbers can be fixed.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Sources.</strong> CrimeLogic: <a href="https://www.roblox.com/games/12857753286/CrimeLogic-V2">CrimeLogic V2</a>, <a href="https://www.roblox.com/games/7103997355/CrimeLogic">CrimeLogic</a>, <a href="https://www.roblox.com/games/5040784481/Police-AI-Playground">Police AI Playground changelog</a>, <a href="https://roblox-crimelogic.fandom.com/wiki/Artificial_Intelligence_Police_Department">community wiki (AIPD)</a>. Game AI: <a href="https://www.gamedeveloper.com/design/the-ai-of-hitman-2016-">The AI of Hitman (2016)</a>, <a href="https://dblp1.uni-trier.de/rec/conf/aiide/Isla13.html">Isla, Third Eye Crime: Building a Stealth Game Around Occupancy Maps (AIIDE 2013)</a>, <a href="https://en.wikipedia.org/wiki/Tom_Clancy%27s_Splinter_Cell:_Conviction">Splinter Cell: Conviction</a>, <a href="https://www.pcgames.de/Watch-Dogs-Spiel-41939/Tipps/Watch-Dogs-Anrufe-bei-der-Polizei-verhindern-Video-Guide-1130588/">Watch Dogs call-prevention guide</a>, <a href="https://allthings.how/gta-5-how-to-lose-cops-without-cheats/">GTA V evasion guide</a>, <a href="https://av2.readthedocs.io/en/latest/theory/pure-pursuit.html">pure pursuit</a>. Roblox: <a href="https://create.roblox.com/docs/performance-optimization/improve">Improve performance</a>, <a href="https://create.roblox.com/docs/characters/pathfinding">Character pathfinding</a>, <a href="https://create.roblox.com/docs/scripting/networking/network-ownership">Network ownership</a>, <a href="https://create.roblox.com/docs/reference/engine/datatypes/OverlapParams">OverlapParams</a>, <a href="https://devforum.roblox.com/t/new-spatial-query-filters/4563575">New spatial query filters</a>.</p>
+</footer>
+
+</div>
+
+<a class="tolink" href="#contents">Contents ↑</a>
+
+<script>
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest ? e.target.closest('button.copy') : null;
+  if (!btn) return;
+  var pre = document.getElementById(btn.getAttribute('data-target'));
+  if (!pre) return;
+  var text = pre.textContent;
+  function reset() { setTimeout(function () { btn.textContent = 'Copy source'; }, 1800); }
+  function selectText() {
+    var range = document.createRange(); range.selectNodeContents(pre);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { btn.textContent = 'Copied'; reset(); },
+      function () { selectText(); btn.textContent = 'Copy blocked. Text selected'; reset(); });
+  } else { selectText(); btn.textContent = 'Copy blocked. Text selected'; reset(); }
+});
+</script>

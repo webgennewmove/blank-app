@@ -1,0 +1,16 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  FREE(["FREE"]) -->|"crime reported or seen"| WANT["WANTED<br/>case unresolved"]
+  WANT -->|"grab within 3.5 studs"| GRAB["BEING GRABBED<br/>1.2 s · slowed to 60%"]
+  GRAB -->|"breaks past 4.5 studs"| WANT
+  GRAB -->|"timer completes"| REST["RESTRAINED<br/>0.8 s · locked"]
+  REST --> PROC["PROCESSING<br/>confiscate · fine · cooldown"]
+  WANT -->|"search ended: evaded"| LEDGER["Reward ledger<br/>getaway XP once per case id"]
+  WANT -->|"police never engaged"| UNS["Unsolved<br/>no getaway XP"]
+  PROC --> FREE2(["FREE"])
+  LEDGER --> FREE2
+  UNS --> FREE2
+  DOOR(["Apartment door used"]) --> GATE{"Apartment gate<br/>server-side, no yields"}
+  GATE -->|"open case · arrest ·<br/>civilian chase · lock"| DENY["Denied with a reason<br/>no state changes"]
+  GATE -->|"all clear"| ENTER["ENTERING<br/>0.5 s transition lock"]
+  ENTER --> INSIDE["IN APARTMENT<br/>phone reveals only while<br/>no case is open"]

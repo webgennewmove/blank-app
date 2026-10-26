@@ -1,0 +1,16 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  SCAN["Vision scan<br/>60 studs · 120° · 6-stud bubble"] --> LOS{"Line of sight to<br/>head or torso?"}
+  LOS -->|"no"| SCAN
+  LOS -->|"yes"| BRF{"Officer briefed on a<br/>case for this player?"}
+  BRF -->|"no"| PERSON["Just a person<br/>maybe a glance"]
+  BRF -->|"yes"| IDB["Identification builds<br/>description × distance × behavior"]
+  IDB -->|"reaches 1.0"| CONF["CONFIRMED<br/>react after 0.45 s"]
+  CONF --> CHASE["Chase<br/>direct when clear, else graph path<br/>radio update every 2 s"]
+  CHASE -->|"within 3.5 studs"| GRAB["Arrest attempt"]
+  CHASE -->|"line of sight broken"| OCC["OCCLUDED · up to 2.5 s<br/>run to predicted point · peek"]
+  OCC -->|"seen again"| CHASE
+  OCC -->|"nothing at the corner"| LKP["LAST SEEN<br/>LKP + heading to the case<br/>radio: lost visual"]
+  LKP --> SRCH["SEARCH · Diagram E"]
+  SRCH -->|"reacquired"| CHASE
+  SRCH -->|"confidence spent"| LOST["LOST<br/>case evaded"]

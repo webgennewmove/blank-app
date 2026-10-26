@@ -1,0 +1,17 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  LKP(["Last seen at the alley mouth<br/>heading north"]) --> BEL["Shared belief · updated every 0.5 s<br/>1 · spread at running pace, away from the LKP<br/>2 · zero nodes any officer can see · bins excepted<br/>3 · add evidence: noise ×3, reports reseed<br/>4 · renormalize and group into clusters"]
+  BEL --> C1["North exit cluster<br/>p 0.48"]
+  BEL --> C2["East gap cluster<br/>p 0.30"]
+  BEL --> C3["Alley bins<br/>p 0.11 · 0.07 · 0.05"]
+  C1 -->|"highest p per second of travel"| OA["Officer A<br/>sweeps north, peeks each corner"]
+  C2 -->|"next best, unclaimed"| OB["Officer B<br/>sweeps the east gap"]
+  C3 -.->|"under 0.20, no evidence"| SHUT["Bins stay shut<br/>re-scored every tick"]
+  C3 -->|"p ≥ 0.20, or evidence and p ≥ 0.10"| OPEN["Nearest free officer opens one<br/>2 s, telegraphed · max 2 each"]
+  OA -->|"radio: clear"| BEL
+  OB -->|"radio: clear"| BEL
+  OPEN -->|"empty: clear"| BEL
+  OPEN -->|"occupied"| FOUND["Found · 0.8 s burst-out window<br/>then PURSUE"]
+  OA -->|"suspect seen"| PUR["PURSUE"]
+  BEL --> END{"Unseen for T-min and local<br/>max under 0.15, or T-max?"}
+  END -->|"yes"| EVD(["Case evaded<br/>officers return to patrol"])

@@ -1,0 +1,46 @@
+
+/* Police page additions: police-blue plate line, Battenburg strip, officer-state chips, knowledge ladder, scenario timelines. */
+:root{
+  --plate-blue:#1b3f8f; --batt-blue:#1b3f8f; --batt-yellow:#f3c300;
+  --s-patrol:#2e7a4f; --s-respond:#2f6690; --s-investigate:#1f7a7a; --s-pursue:#b4271f; --s-search:#6d4aa0; --s-arrest:#16191d; --s-return:#6b737d;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --plate-blue:#1b3f8f; --batt-blue:#1b3f8f; --batt-yellow:#f3c300;
+    --s-patrol:#6cc391; --s-respond:#86b6df; --s-investigate:#5fc4c4; --s-pursue:#f27b6f; --s-search:#b49ae6; --s-arrest:#e7e9e4; --s-return:#a7aeb6;
+  }
+}
+:root[data-theme="dark"]{
+  --plate-blue:#1b3f8f; --batt-blue:#1b3f8f; --batt-yellow:#f3c300;
+  --s-patrol:#6cc391; --s-respond:#86b6df; --s-investigate:#5fc4c4; --s-pursue:#f27b6f; --s-search:#b49ae6; --s-arrest:#e7e9e4; --s-return:#a7aeb6;
+}
+.borough,.postcode{color:var(--plate-blue)}
+.battenburg{height:12px;margin-top:.45rem;border-radius:3px;background:repeating-linear-gradient(90deg,var(--batt-blue) 0 22px,var(--batt-yellow) 22px 44px)}
+.st-patrol{color:var(--s-patrol)}.st-respond{color:var(--s-respond)}.st-investigate{color:var(--s-investigate)}.st-pursue{color:var(--s-pursue)}.st-search{color:var(--s-search)}.st-arrest{color:var(--s-arrest)}.st-return{color:var(--s-return)}
+
+.ladder{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.ladder li{display:grid;grid-template-columns:auto 9rem minmax(0,1fr);gap:.4rem 1rem;align-items:start;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.75rem 1rem;margin:0}
+.ladder strong{font-family:var(--font-display);font-stretch:92%;font-size:1.02rem}
+.ladder p{font-size:.95rem}
+.sig{display:inline-grid;grid-auto-flow:column;gap:3px;align-items:end;height:18px;padding-top:.2rem}
+.sig i{display:block;width:5px;background:var(--bar-track);border-radius:1px}
+.sig i:nth-child(1){height:6px}.sig i:nth-child(2){height:9px}.sig i:nth-child(3){height:12px}.sig i:nth-child(4){height:15px}.sig i:nth-child(5){height:18px}
+.sig i.on{background:var(--accent)}
+
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:.55rem}
+.timeline li{display:grid;grid-template-columns:5.6rem minmax(0,1fr);gap:.4rem .9rem;background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:.7rem .95rem;margin:0}
+.timeline time{font:600 .8rem/1.5 var(--font-mono);font-variant-numeric:tabular-nums;padding-top:.1rem}
+.timeline .what{display:grid;gap:.3rem;min-width:0}
+.timeline .k{font-size:.92rem;color:var(--ink-2)}
+.timeline .k b{font:600 .68rem/1 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin-right:.35rem}
+.cols.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.scenario-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem .8rem}
+@media (max-width: 960px){.cols.three{grid-template-columns:1fr}}
+@media (max-width: 640px){
+  .timeline li{grid-template-columns:1fr;gap:.2rem}
+  .ladder li{grid-template-columns:auto minmax(0,1fr)}
+  .ladder li p{grid-column:1 / -1}
+}
+
+/* Long API names in prose wrap instead of widening the page on phones. */
+p code,li code,dd code,figcaption code{overflow-wrap:anywhere}

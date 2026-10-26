@@ -1,0 +1,23 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TD
+  T(["Phone snatched"]) --> WHO{"Who perceived it?"}
+  WHO -->|"an officer"| DIRECT["Officer confirms on the spot<br/>case opens at L2"]
+  WHO -->|"civilians"| CIV["Citizen Brain picks<br/>Call 999 · Shout · Statement"]
+  CIV -->|"Call 999 · 6 s · interruptible"| CALL["Report: spot · heading · age<br/>quality: saw 0.6 · heard 0.3"]
+  CIV -->|"Shout near an officer"| HEARD["Officer hears it<br/>goes to look"]
+  CALL --> PROC["Dispatch processing<br/>3 to 8 s"]
+  PROC --> OPEN{"Suspect already<br/>has an open case?"}
+  OPEN -->|"yes"| ATT["Attach report<br/>repeat count +1"]
+  OPEN -->|"no"| NEW["Open case<br/>severity · evidence · heat"]
+  ATT --> FREE{"Unit available?"}
+  NEW --> FREE
+  FREE -->|"no"| LOG["L0 logged<br/>unsolved after 45 s"]
+  FREE -->|"yes"| PICK["Choose unit<br/>lowest ETA · approach angle<br/>never a fresh spawn in view"]
+  PICK --> BRIEF["Radio briefing<br/>description quality · heading"]
+  BRIEF --> GO["RESPOND · then INVESTIGATE<br/>witness statement refreshes<br/>spot and heading"]
+  HEARD --> GO
+  GO --> NEXT{"Suspect identified?"}
+  NEXT -->|"yes"| PUR["PURSUE"]
+  NEXT -->|"no, heading known"| SRCH["SEARCH from the report"]
+  NEXT -->|"no leads"| UNS["Unsolved after 45 s"]
+  DIRECT --> PUR

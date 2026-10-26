@@ -1,0 +1,15 @@
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryBorderColor": "#5b6670", "primaryTextColor": "#1d2227", "lineColor": "#5b6670", "secondaryColor": "#f1f2ee", "tertiaryColor": "#f3f4ef", "clusterBkg": "#f3f4ef", "clusterBorder": "#c4c9c0", "edgeLabelBackground": "#fbfbf8", "fontSize": "15px"}, "flowchart": {"nodeSpacing": 28, "rankSpacing": 42}}}%%
+flowchart TB
+  PA["Player A<br/>snatches a phone"] --> CA["Case 40<br/>suspect A"]
+  PB["Player B snatches a phone<br/>6 s later, 20 studs away"] --> CB["Case 41<br/>suspect B"]
+  PC["Player C<br/>innocent, nearby"]
+  PD["Player D<br/>disconnects mid-chase"]
+  CA --- CLU["Cluster C-7<br/>shared scene · separate cases"]
+  CB --- CLU
+  CLU --> DSP["Dispatch<br/>shared unit pool<br/>per-case minimum and cap"]
+  DSP -->|"primary: case 40"| O1["Officer Hale"]
+  DSP -->|"primary: case 41"| O2["Officer Okoro"]
+  O1 --> RA["Case 40: arrested<br/>only A loses case-40 phones"]
+  O2 --> RB["Case 41: evaded<br/>only B earns getaway XP, once"]
+  PC -.->|"never a suspect"| IG["Officers may glance<br/>never pursue or arrest"]
+  PD --> AB["Case abandoned<br/>officers released"]
