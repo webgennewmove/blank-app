@@ -14,6 +14,7 @@ A condensed record of the whole conversation, written so a new session (or a per
 | Police Brain blueprint (published page) | https://claude.ai/artifact/F1HT7oXui622SCTAbBMaJe |
 | Citizen Brain files (page, 5 diagrams, scoring calculators) | `docs/magalo-citizen-brain/` |
 | Police Brain files (page, 7 diagrams, search simulation, timing calculator) | `docs/magalo-police-brain/` |
+| All 12 diagrams in one file (vector PDF, bookmarked) | `docs/MAGALO-AI-diagrams.pdf` |
 
 Both published pages are private to the account that created them. Each docs folder has a README and a `tools/build.py` that rebuilds its HTML page from the sources.
 
