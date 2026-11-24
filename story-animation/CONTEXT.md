@@ -23,7 +23,25 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 | 1 | **NIGHT RULES Ep1: "The Silent Night"** | 1:22 | Kofi, West-African-inspired town Ashwe, Anansi the spider. Spooky/cliffhanger. Blender + Cycles stills with Ken Burns moves. |
 | 2 | **Zara's Birthday Power, Part 1** | 1:12 | Bright suburb; every kid gets a power at 10; Zara's is stopping time. First fully animated (Workbench) episode. Feedback: "boring, no retention, no comment dispute". |
 | 3 | **IN MY HOOD Ep1: "Whatever number you say…"** | 1:03 | See §4. |
-| 4 | **IN MY TOWN Ep1: "Everyone steals eggs"** | 1:01 | Newest format: famous-Roblox-game parody (Steal An Egg), one narrator voice, EEVEE renders, hypnotic beats. See §4b. |
+| 4 | **IN MY TOWN Ep1: "Everyone steals eggs"** | 1:01 | Famous-Roblox-game parody (Steal An Egg), one narrator voice, EEVEE renders, hypnotic beats. See §4b. |
+| 5 | **ON MY BLOCK Ep1: "Everybody got motion… except me"** | 1:01 | **Current main format.** YN cast, Dre narrates, funnier. See §4a. |
+
+## 4a. ON MY BLOCK: the main format (from Nov 2026)
+
+**Why:** the IN MY HOOD video performed best, so the channel now centres on the hood flow. The owner wants it **funnier** and the **main cast to be YNs** (young hood dudes: drip, chains, durags, slang, jokes). Keep it to drip and comedy, with no guns or crime.
+**Vibe / hook:** "On my block, everybody got motion… except me." The narrator is the broke one, and the jokes are self-own reveals.
+**Workflow rule:** write 2–3 storyline options first and get the owner's pick **before** generating the voice or building anything.
+
+**Cast (YNs):**
+- **Dre**: narrator, broke and funny. Navy durag, white tee, grey sweats. Voice: "Dre - On My Block narrator" (designed, `vA7VdYNRDShiWPeVQjRp`). He narrates everything and does everyone's voices, so there is **one voice only**.
+- **Milo**: red hoodie, fade, gold chain. Has a gold whip at 12, and roasts Dre.
+- **Big Kev**: huge, black hoodie, cornrows, chain so heavy he can't stand up straight (a pizza-sized "K" pendant).
+- **Uncle Ray**: runs the deli (cap, beard, apron) and gives terrible "wise" advice.
+- **Lil bro**: one year old, shades and a chain, richer than everyone.
+
+**Ep1 script:** everybody's motion → Dre's library card → lemonade sold to himself → "them is Crocs" → Ray: "you just gotta… MOVE" → he literally can't stop moving (block → city → OHIO → round a tiny planet) → Kev: "bro, how you stop?" → "I DON'T KNOW!!!" End card: **HOW DOES HE STOP? wrong answers only 👇 PART 2**.
+**Hypnotic beats:** money rain; a Droste zoom into a deli inside a deli inside a deli (STORES counter racing); lil bro's net-worth counter; a hero sunburst on TODAY; a running loop round a tiny planet with tunnel rings; and the end-card tunnel.
+**Part 2 ideas:** how he stops (Uncle Ray says "stop" in Ohio); everybody got drip except Dre; everybody got a plug except Dre.
 
 ## 4b. IN MY TOWN: famous Roblox games, one narrator (Nov 2026)
 
@@ -95,6 +113,7 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 | Zara (birthday ep) | Gudiya, kid narrator | `e3FEEanj39p8QCSMe8iV` |
 | Milo (birthday ep) | Teddy Twinkle | `XjGYkUkzth8BPs29fmcV` |
 | Kofi (Night Rules) | Liam | `TX3LPaxmHKxFdv7VOQHJ` |
+| **Dre (ON MY BLOCK, the only voice, current)** | Dre - On My Block narrator (designed: hype, funny, young adult East Coast) | `vA7VdYNRDShiWPeVQjRp` |
 | **Toby (IN MY TOWN, the only voice)** | Toby - In My Town narrator (designed: energetic, extroverted, youthful American male) | `1BempFyI57oP6ldXrZtr` |
 
 - Use audio tags in prompts: `[excited]`, `[whispering]`, `[deadpan]`, `[panicking]`, etc.
@@ -135,6 +154,13 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 | `audio.py` / `naudio.py` | Score + SFX synced to FX + VO ducking; writes with-music and no-music mixes |
 | `split.py` / `hsplit.py` | Split ElevenLabs narration into per-shot lines |
 | `night_rules_*.py` | Episode 1 (Cycles stills + Ken Burns) pipeline |
+
+Run order for an ON MY BLOCK episode (same pattern; files `block_timeline.py`, `block.py`, `block_compose.py`, `block_audio.py`, data in `block/`):
+```bash
+python block_timeline.py && EEVEE=1 python block.py -- all still     # cut VO, preview stills -> block/preview/
+EEVEE=1 python block.py -- b17,b01,...,b08 &  EEVEE=1 python block.py -- b09,...,b16 &   # ~2h render
+python block_compose.py block/block_noaudio.mp4 && python block_audio.py
+```
 
 Run order for an IN MY TOWN episode (`/home/claude/zara`, bpy 4.2 venv, needs `libegl1`):
 ```bash
