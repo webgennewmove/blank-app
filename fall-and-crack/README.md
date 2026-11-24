@@ -20,6 +20,10 @@ When the UI closes, set `MusicOverride` back to `nil`.
 
 ## Install
 
+**Easiest (one paste):** open the place in Studio, go to **View → Command Bar**, paste all of
+`INSTALL_IN_STUDIO.luau`, and press Enter. It creates all 4 scripts in the right places
+(running it again updates them; Ctrl+Z undoes it).
+
 **With Rojo:** run `rojo serve` in this folder and connect from Studio.
 
 **Without Rojo:** in Studio, create these and paste in each file's contents:
