@@ -248,6 +248,33 @@ export default {
     slot: slotRoom(o), disguise: disguiseSet(o), body: bodySet(o), trap: trapSet(o),
   }),
 
+  mix(a) {
+    const snapAt = a.duration - 0.75;
+    const cues = a.shots.slice(1).map((s) => [s.start - 0.12, 'whoosh', 0.3]);
+    cues.push(
+      [a.at(5) + 0.25, 'impact', 0.8], [a.at(10), 'glitch', 0.55], [a.at(12), 'impact', 0.45],
+      [a.at(18) + 0.15, 'impact', 0.7], [a.at(20) + 0.1, 'impact', 0.7],
+      [a.at(43), 'chips', 0.7],
+      [a.at(60), 'impact', 0.9], [a.at(60), 'glitch', 0.45],
+      [a.at(62), 'reels', 0.45], [a.at(65) + 0.1, 'clunk', 0.6], [a.at(66) + 0.1, 'clunk', 0.6], [a.at(67) - 0.05, 'clunk', 0.6],
+      [a.at(73), 'jackpot', 0.55],
+      [a.at(80) - 0.05, 'scratch', 0.8], [a.at(84), 'impact', 0.8], [a.at(92), 'impact', 0.35],
+      [snapAt, 'snap', 1.0], [snapAt, 'impact', 0.7],
+    );
+    for (let tt = a.at(21), step = 0.5; tt < a.at(34) - 0.2; tt += step) {
+      cues.push([tt, 'tick', tt > a.at(29) ? 0.2 : 0.35]);
+      step = tt > a.at(29) ? 0.11 : tt > a.at(25) ? 0.25 : 0.5;
+    }
+    const bpm = bpmCurve(a);
+    let last = null;
+    for (let tt = a.at(96); tt < a.at(105) - 0.1; tt += 1 / 240) {
+      const k = Math.floor((tt * bpm(tt)) / 60);
+      if (last !== null && k !== last) cues.push([tt, 'heartbeat', 0.5 + 0.4 * clamp01((tt - a.at(99)) / 2)]);
+      last = k;
+    }
+    return { music: { gain: 0.24, mutes: [[a.at(80) - 0.05, a.at(87) - 0.15], [snapAt, a.duration + 2]] }, cues };
+  },
+
   hud(ctx, t, a) {
     const { W, H } = a;
     if (t >= a.at(37) - 0.2 && a.shot.set !== 'trap') {

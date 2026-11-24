@@ -19,6 +19,7 @@ const words = await (await fetch(`../audio/${q.get('ep')}/words.json`)).json();
 const player = await createPlayer(episode, { width: W, height: H, words, env: window.__env ?? [], envRate: 60 });
 window.__duration = player.duration;
 window.__script = player.shots;
+window.__mix = player.mix;
 window.__frame = (t) => { player.renderAt(t); return document.getElementById('out').toDataURL('image/jpeg', 0.93); };
 window.__ready = true;
 </script>

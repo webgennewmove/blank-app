@@ -60,7 +60,34 @@ if (stills) {
 } else {
   const script = await page.evaluate(() => window.__script);
   fs.writeFileSync(outFile.replace(/\.mp4$/, '.script.json'), JSON.stringify(script, null, 2));
+  const mixSpec = await page.evaluate(() => window.__mix);
   const audio = ['-i', voice];
+  if (mixSpec) {
+    const dir = path.join(root, 'audio', ep);
+    const sfxFile = (n) => ['wav', 'mp3'].map((x) => path.join(dir, 'sfx', `${n}.${x}`)).find((f) => fs.existsSync(f));
+    const inputs = ['-i', voice, '-i', path.join(dir, 'music.mp3')];
+    const graph = ['[0:a]aformat=sample_rates=48000:channel_layouts=stereo,asplit[v1][v2]'];
+    const mute = mixSpec.music.mutes.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join('+') || '0';
+    graph.push(`[1:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=0:${duration.toFixed(3)},volume='if(${mute},0,${mixSpec.music.gain})':eval=frame[m]`);
+    graph.push('[m][v2]sidechaincompress=threshold=0.04:ratio=5:attack=15:release=350[duck]');
+    const labels = ['[v1]', '[duck]'];
+    mixSpec.cues.forEach(([t, name, gain], i) => {
+      inputs.push('-i', sfxFile(name));
+      graph.push(`[${i + 2}:a]aformat=sample_rates=48000:channel_layouts=stereo,volume=${gain},adelay=${Math.max(0, Math.round(t * 1000))}:all=1[c${i}]`);
+      labels.push(`[c${i}]`);
+    });
+    graph.push(`${labels.join('')}amix=inputs=${labels.length}:normalize=0,loudnorm=I=-14:TP=-1.5:LRA=11,aresample=48000,apad=whole_dur=${duration.toFixed(3)}[out]`);
+    const mixed = outFile.replace(/\.mp4$/, '.mix.wav');
+    const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error', ...inputs, '-filter_complex', graph.join(';'), '-map', '[out]', mixed], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error('audio mix failed');
+    audio[1] = mixed;
+  }
+  if (args.remux) {
+    const src = path.resolve(root, args.remux);
+    spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', src, ...audio, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', outFile], { stdio: 'inherit' });
+    console.log(`remuxed: ${outFile}`);
+    await browser.close(); server.close(); process.exit(0);
+  }
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
     ...audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '21', '-maxrate', '14M', '-bufsize', '28M', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-af', 'apad', '-shortest', '-movflags', '+faststart', outFile], { stdio: ['pipe', 'inherit', 'inherit'] });

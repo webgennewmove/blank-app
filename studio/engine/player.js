@@ -149,5 +149,6 @@ export async function createPlayer(episode, { width: W, height: H, words: rawWor
     drawCaptions(ctx, t, chunks, W, H);
   }
 
-  return { duration, renderAt, shots: shots.map((s) => ({ set: s.set, start: s.start, end: s.end })) };
+  const mix = episode.mix?.({ at, duration, shots });
+  return { duration, renderAt, mix, shots: shots.map((s) => ({ set: s.set, start: s.start, end: s.end })) };
 }
