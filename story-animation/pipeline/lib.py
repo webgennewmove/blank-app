@@ -43,8 +43,8 @@ def box(name, loc, size, m, rot=(0, 0, 0), parent=None, bevel=0.0, coll=None):
         def b(bm, sz=sz, bevel=bevel):
             bmesh.ops.create_cube(bm, size=1.0)
             for v in bm.verts: v.co = Vector((v.co.x * sz[0], v.co.y * sz[1], v.co.z * sz[2]))
-            bmesh.ops.bevel(bm, geom=list(bm.edges) + list(bm.verts), offset=bevel, segments=2, affect="EDGES")
-        return _obj(name, _mk(("bcube", sz, bevel), b, m), loc, rot, (1, 1, 1), parent, coll)
+            bmesh.ops.bevel(bm, geom=list(bm.edges) + list(bm.verts), offset=bevel, segments=4, affect="EDGES", profile=0.5)
+        return _obj(name, _mk(("bcube4", sz, bevel), b, m, smooth=True), loc, rot, (1, 1, 1), parent, coll)
     return _obj(name, _mk("cube", lambda bm: bmesh.ops.create_cube(bm, size=1.0), m), loc, rot, size, parent, coll)
 
 def cyl(name, loc, r, depth, m, rot=(0, 0, 0), verts=16, parent=None, coll=None, smooth=True):
@@ -110,7 +110,7 @@ def _face_mat(kind, skin):
 _faceplane = {}
 def _plane_mesh():
     if "p" in _faceplane: return _faceplane["p"]
-    me = bpy.data.meshes.new("faceplane"); s = 0.56
+    me = bpy.data.meshes.new("faceplane"); s = 0.40
     me.from_pydata([(-s, 0, -s), (s, 0, -s), (s, 0, s), (-s, 0, s)], [], [(0, 1, 2, 3)])
     uv = me.uv_layers.new(name="UVMap")
     for i, c in enumerate([(0, 0), (1, 0), (1, 1), (0, 1)]): uv.data[i].uv = c
@@ -119,7 +119,7 @@ def _plane_mesh():
 def build_face_tex(head, kind, coll, skin):
     me = _plane_mesh().copy(); me.materials.append(_face_mat(kind, skin))
     o = bpy.data.objects.new("face_" + kind, me); coll.objects.link(o)
-    o.parent = head; o.location = (0, -0.618, 0); o.rotation_euler = (0, 0, math.pi)
+    o.parent = head; o.location = (0, -0.613, 0); o.rotation_euler = (0, 0, math.pi)
     o.rotation_euler = (0, 0, 0)
     return [o]
 
@@ -178,18 +178,18 @@ class Char:
         self.legs = []
         for sx in (-0.5, 0.5):
             p = empty("legpiv", (sx, 0, 0), parent=self.hips, coll=coll)
-            box("leg", (0, 0, -1.0), (0.95, 0.95, 2.0), pa, parent=p, bevel=0.13, coll=coll)
-            box("shoe", (0, -0.06, -1.85), (0.98, 1.08, 0.32), so, parent=p, bevel=0.06, coll=coll)
+            box("leg", (0, 0, -1.0), (0.98, 0.98, 2.0), pa, parent=p, bevel=0.2, coll=coll)
+            box("shoe", (0, -0.04, -1.86), (1.0, 1.06, 0.3), so, parent=p, bevel=0.12, coll=coll)
             self.legs.append(p)
-        self.torso = box("torso", (0, 0, 1.0), (2.0, 1.0, 2.0), sh, parent=self.hips, bevel=0.16, coll=coll)
+        self.torso = box("torso", (0, 0, 1.0), (2.0, 1.0, 2.0), sh, parent=self.hips, bevel=0.24, coll=coll)
         self.arms = []
         for sx in (-1.5, 1.5):
             p = empty("armpiv", (sx, 0, 1.8), parent=self.hips, coll=coll)
-            box("sleeve", (0, 0, -0.45), (0.97, 0.97, 1.0), sh, parent=p, bevel=0.13, coll=coll)
-            box("arm", (0, 0, -1.35), (0.92, 0.92, 0.9), sk, parent=p, bevel=0.13, coll=coll)
+            box("sleeve", (0, 0, -0.45), (0.98, 0.98, 1.0), sh, parent=p, bevel=0.2, coll=coll)
+            box("arm", (0, 0, -1.35), (0.92, 0.92, 0.9), sk, parent=p, bevel=0.2, coll=coll)
             self.arms.append(p)
         self.neck = empty("neck", (0, 0, 2.0), parent=self.hips, coll=coll)
-        self.head = box("head", (0, 0, 0.62), (1.22, 1.22, 1.22), sk, parent=self.neck, bevel=0.14, coll=coll)
+        self.head = box("head", (0, 0, 0.66), (1.22, 1.22, 1.22), sk, parent=self.neck, bevel=0.2, coll=coll); self.head.scale = (1.04,) * 3
         h = self.head
         if hair == "short":
             box("hair", (0, 0.06, 0.6), (1.34, 1.3, 0.3), hm, parent=h, bevel=0.08, coll=coll)

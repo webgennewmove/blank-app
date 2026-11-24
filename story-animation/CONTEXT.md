@@ -22,9 +22,35 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 |---|---|---|---|
 | 1 | **NIGHT RULES Ep1: "The Silent Night"** | 1:22 | Kofi, West-African-inspired town Ashwe, Anansi the spider. Spooky/cliffhanger. Blender + Cycles stills with Ken Burns moves. |
 | 2 | **Zara's Birthday Power, Part 1** | 1:12 | Bright suburb; every kid gets a power at 10; Zara's is stopping time. First fully animated (Workbench) episode. Feedback: "boring, no retention, no comment dispute". |
-| 3 | **IN MY HOOD Ep1: "Whatever number you say…"** | 1:03 | Current flagship format. See §4. |
+| 3 | **IN MY HOOD Ep1: "Whatever number you say…"** | 1:03 | See §4. |
+| 4 | **IN MY TOWN Ep1: "Everyone steals eggs"** | 1:01 | Newest format: famous-Roblox-game parody (Steal An Egg), one narrator voice, EEVEE renders, hypnotic beats. See §4b. |
 
-## 4. IN MY HOOD: current format
+## 4b. IN MY TOWN: famous Roblox games, one narrator (Nov 2026)
+
+**Format:** "In my town, everyone [does the famous Roblox game]." Each episode parodies whatever is #1 on Roblox right now (Nov 2026: **Steal An Egg**, ~820K avg / 7.6M peak players, ahead of Throw Food For Animals, Brookhaven, Blox Fruits). Next candidates: Grow a Garden ("everyone grows a garden"), Steal a Brainrot, 99 Nights, Dress to Impress.
+
+**Narrator / hero: Toby.** Green hoodie, navy pants, chunky brown hair. He narrates everything in first person and quotes everyone else, so **one voice only**.
+
+**Character look (all characters, from the approved reference image):** R6 build (torso 2x2x1, arms and legs 1x2x1 that sit flush), rounded bevelled blocks (4-segment bevels, smooth shading), head at about 0.62x torso width with soft rounded corners, and painted faces in the reference style: small black oval eyes with one white glint, a D-shaped open smile with a white teeth strip, no blush. Every expression (happy, excited, laugh, talk, blink, sad, shocked, scared, determined, smug) is drawn in that style (`faces.py`, `lib.py`). The reference image sets the proportions, roundness, face style and build, not a specific outfit.
+
+**Ep1 script (one ElevenLabs take, cut per shot by Whisper word timings):**
+1. In my town, everyone steals eggs. EVERYONE. *(low-angle sprint at camera)*
+2. My mom? Steals eggs. 3. My teacher? Steals eggs. 4. Even the COPS steal eggs!
+5. Whoever has the most eggs… runs the whole town. *(mayor on an egg mountain)*
+6. And me? I had one. One tiny, cracked, sad little egg.
+7. Until last night… 8. I saw it. A GOLDEN egg! On top of the mayor's house!
+9. Rule number one in my town: never… touch… the mayor's egg.
+10. So obviously… I touched the mayor's egg. 11. RUN!!! *(the in-game "RUN!!" prompt)*
+12. My mom? Chasing me. My teacher? Chasing me. The cops? DEFINITELY chasing me!
+13. I made it home, slammed the door, put it down… and it started to crack.
+14. The whole town went silent. 15. Because what came out of that egg… was NOT a pet.
+16. End card: **WHAT HATCHED? 🥚 wrong answers only 👇 PART 2**
+
+**Hypnotic beats (keep at least one every ~10 s):** an endless spiral of eggs raining onto the mayor's mountain with an orbiting camera and a racing counter; rotating sunburst rays plus tunnel rings behind the golden egg; a red/white spinning burst on RUN!!; endless marching columns of chasers with a racing CHASERS counter; the whole town frozen in perfect concentric rings with a slow spiral up to overhead; and the hatch, where rays and rings speed up into a white-out.
+
+**Comment bait:** "What hatched? Wrong answers only." Part 2 ideas: what hatched, the mayor's revenge, Grow a Garden crossover.
+
+## 4. IN MY HOOD: format
 
 **Logline:** In my hood, whatever number you say out loud… that's how many of you pull up.
 
@@ -69,6 +95,7 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 | Zara (birthday ep) | Gudiya, kid narrator | `e3FEEanj39p8QCSMe8iV` |
 | Milo (birthday ep) | Teddy Twinkle | `XjGYkUkzth8BPs29fmcV` |
 | Kofi (Night Rules) | Liam | `TX3LPaxmHKxFdv7VOQHJ` |
+| **Toby (IN MY TOWN, the only voice)** | Toby - In My Town narrator (designed: energetic, extroverted, youthful American male) | `1BempFyI57oP6ldXrZtr` |
 
 - Use audio tags in prompts: `[excited]`, `[whispering]`, `[deadpan]`, `[panicking]`, etc.
 - The account is on the **free plan (10k credits/month)**. Free-plan audio isn't licensed for commercial use, so upgrade to Starter before monetising.
@@ -81,6 +108,7 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 
 ## 7. Visual style rules
 
+- IN MY TOWN renders with **EEVEE Next** (8 samples, sun + sky world, real soft shadows: `EEVEE=1`, `eevee_patch.py`). That's about 7–9 s/frame per process; run two processes in parallel on 4 cores, about 1h40 for a 61 s episode. Workbench shadows break on the software GL in the cloud container, so older episodes render with shadows off.
 - Vertical 9:16, final 1080×1920, 24 fps, Blender **Workbench** (texture colour mode, "outdoor" studio light, shadows + cavity). It renders at roughly 3–4 s/frame on 2 CPU cores.
 - Blocky R6-style characters with rounded edges; **faces are painted textures** (one clean plane per expression: happy, excited, laugh, sad, shocked, scared, determined, blink, smug, talk). Expressions swap over time.
 - Constant movement: idle bob, walks/runs, jumps, dances, laughs, flailing, head turns, blinks.
@@ -108,6 +136,15 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 | `split.py` / `hsplit.py` | Split ElevenLabs narration into per-shot lines |
 | `night_rules_*.py` | Episode 1 (Cycles stills + Ken Burns) pipeline |
 
+Run order for an IN MY TOWN episode (`/home/claude/zara`, bpy 4.2 venv, needs `libegl1`):
+```bash
+python egg_timeline.py                                # cuts egg/vo_full.wav by Whisper word timings (egg/words.json)
+EEVEE=1 python egg.py -- all still                    # preview one frame per shot -> egg/preview/
+EEVEE=1 python egg.py -- e01,...,e07 &  EEVEE=1 python egg.py -- e08,...,e14 &   # render (~1h40)
+python egg_compose.py egg/egg_noaudio.mp4             # composite with hypnotic layers, FX, captions, end card
+python egg_audio.py                                   # egg_mix.wav + egg_mix_nomusic.wav
+```
+
 Run order for a hood episode:
 ```bash
 python hsplit.py                                     # after voice files are in hel/
@@ -121,5 +158,5 @@ Requirements: `bpy` (Python 3.11 venv), Pillow, numpy, librosa, soundfile, kokor
 
 ## 10. Known constraints
 
-- The cloud workspace can't download from ElevenLabs/ForgeGUI file hosts, so voice files have to be attached manually (or fetched via the desktop app's browser).
+- (Nov 2026: ElevenLabs downloads from `elevenlabsusercontent.com` now work in the cloud container.) Earlier note: the cloud workspace can't download from ElevenLabs/ForgeGUI file hosts, so voice files have to be attached manually (or fetched via the desktop app's browser).
 - Large crowds: use `crowd_merged()` with the low-poly `POSES_LO` Milos for anything far from the camera.

@@ -1,85 +1,83 @@
-"""Smooth Roblox-style face textures, painted on the character's skin colour (opaque, sRGB)."""
-from PIL import Image, ImageDraw, ImageFilter
+"""Roblox-style painted faces matching the reference: small black oval eyes with one glint, D-shaped open smile
+with a white teeth strip, no blush. Texture covers +/-0.40 head units (1280 px per unit at N=1024)."""
+from PIL import Image, ImageDraw
 import math, os
-OUT = "/home/claude/zara/facetex"; os.makedirs(OUT, exist_ok=True)
-N = 1024  # draw at 1024, store 512
+OUT = "/home/claude/zara/facetex2"; os.makedirs(OUT, exist_ok=True)
+N = 1024; U = N / 0.8
+def px(u): return N / 2 + u * U
+def py(z): return N / 2 - z * U
 
 def lin2srgb(c):
     return tuple(int(round(255 * (12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055))) for v in c)
 
-BLACK = (22, 18, 24, 255); WHITE = (255, 255, 255, 255); MOUTH = (110, 20, 35, 255); TONGUE = (240, 110, 130, 255)
-BLUSH = (255, 120, 140, 110); TEAR = (90, 190, 255, 255)
+BLACK = (20, 16, 22, 255); WHITE = (255, 255, 255, 255); MOUTH = (92, 24, 30, 255); TONGUE = (205, 85, 95, 255); TEAR = (90, 190, 255, 255)
+EX, EZ, ERX, ERY = 0.19, 0.08, 0.062, 0.098     # eye centre x offset, height, radii (head units)
+MZ = -0.075                                      # mouth top line
 
-def thick_arc(d, cx, cy, w, h, th, up=True, col=BLACK):
-    """smooth curve: parabola y = cy + h*(x/w*2)^2 (up=smile)"""
-    pts = []
-    for i in range(41):
-        u = i / 40 * 2 - 1; x = cx + u * w / 2; y = cy + (h * (1 - u * u) if up else -h * (1 - u * u))
-        pts.append((x, y))
-    for (x0, y0), (x1, y1) in zip(pts, pts[1:]): d.line([(x0, y0), (x1, y1)], fill=col, width=th)
-    for x, y in (pts[0], pts[-1]): d.ellipse([x - th / 2, y - th / 2, x + th / 2, y + th / 2], fill=col)
-
-def eye(d, cx, cy, rx, ry, glint=True):
+def eye(d, x, z, k=1.0, glint=True):
+    cx, cy, rx, ry = px(x), py(z), ERX * U * k, ERY * U * k
     d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=BLACK)
     if glint:
-        d.ellipse([cx + rx * 0.05, cy - ry * 0.62, cx + rx * 0.62, cy - ry * 0.05], fill=WHITE)
-        d.ellipse([cx - rx * 0.5, cy + ry * 0.25, cx - rx * 0.2, cy + ry * 0.55], fill=WHITE)
+        g = 0.36 * rx; gx, gy = cx + rx * 0.32, cy - ry * 0.42
+        d.ellipse([gx - g, gy - g, gx + g, gy + g], fill=WHITE)
+
+def arc(d, cx, cy, w, h, th, up=True, col=BLACK):
+    pts = [(cx + (i / 30 * 2 - 1) * w / 2, cy + (h * (1 - (i / 30 * 2 - 1) ** 2)) * (1 if up else -1)) for i in range(31)]
+    d.line(pts, fill=col, width=th, joint="curve")
+    for x, y in (pts[0], pts[-1]): d.ellipse([x - th / 2, y - th / 2, x + th / 2, y + th / 2], fill=col)
+
+def dmouth(d, w, h, teeth=True, tongue=False, top=MZ, cx=0.0):
+    """D-shaped open smile: flat top edge, rounded bottom (the reference mouth)"""
+    x0, x1, y0 = px(cx - w / 2), px(cx + w / 2), py(top); hh = h * U
+    d.chord([x0, y0 - hh, x1, y0 + hh], 0, 180, fill=MOUTH)
+    if tongue: d.chord([px(cx - w * 0.28), y0 + hh * 0.35, px(cx + w * 0.28), y0 + hh * 1.25], 180, 360, fill=TONGUE)
+    if teeth:
+        tw, th = w * 0.62 * U / 2, 0.034 * U
+        d.rounded_rectangle([px(cx) - tw, y0 - 2, px(cx) + tw, y0 + th], radius=th * 0.35, fill=WHITE)
+
+def brows(d, slope, z=0.235, th=22):
+    for s in (-1, 1):
+        x = s * EX; k = slope * s
+        d.line([(px(x - 0.07), py(z + k * 0.03)), (px(x + 0.07), py(z - k * 0.03))], fill=BLACK, width=th)
+        for xx, zz in ((x - 0.07, z + k * 0.03), (x + 0.07, z - k * 0.03)):
+            d.ellipse([px(xx) - th / 2, py(zz) - th / 2, px(xx) + th / 2, py(zz) + th / 2], fill=BLACK)
 
 def face(kind, skin_lin):
     skin = lin2srgb(skin_lin) + (255,)
     im = Image.new("RGBA", (N, N), skin); d = ImageDraw.Draw(im, "RGBA")
-    L, R = N * 0.33, N * 0.67; EY = N * 0.44
-    blush = kind in ("happy", "excited", "laugh", "smug", "blink")
-    if blush:
-        bl = Image.new("RGBA", (N, N)); bd = ImageDraw.Draw(bl)
-        for x in (N * 0.2, N * 0.8): bd.ellipse([x - 95, N * 0.6 - 45, x + 95, N * 0.6 + 45], fill=BLUSH)
-        im.alpha_composite(bl.filter(ImageFilter.GaussianBlur(18)))
-    if kind in ("happy", "excited", "sad", "determined", "smug", "talk"):
-        big = 1.15 if kind == "excited" else 1.0
-        eye(d, L, EY, 62 * big, 92 * big); eye(d, R, EY, 62 * big, 92 * big)
-    if kind in ("shocked", "scared"):
-        for x in (L, R):
-            d.ellipse([x - 92, EY - 110, x + 92, EY + 110], fill=WHITE, outline=BLACK, width=14)
-            d.ellipse([x - 34, EY - 40, x + 34, EY + 40], fill=BLACK)
-            d.ellipse([x - 8, EY - 30, x + 16, EY - 8], fill=WHITE)
-    if kind == "laugh":
-        for x in (L, R): thick_arc(d, x, EY + 30, 150, 70, 30, up=False)
-    if kind == "blink":
-        for x in (L, R): thick_arc(d, x, EY + 10, 140, 30, 26, up=True)
-    if kind == "sad":
-        for x, s in ((L, -1), (R, 1)): d.line([(x - 70, EY - 150 - s * 30), (x + 70, EY - 150 + s * 30)], fill=BLACK, width=26)
-        d.ellipse([L - 30, EY + 105, L + 10, EY + 175], fill=TEAR)
-        d.polygon([(L - 30, EY + 140), (L - 10, EY + 80), (L + 10, EY + 140)], fill=TEAR)
-    if kind in ("determined", "scared"):
-        for x, s in ((L, 1), (R, -1)):
-            k = s if kind == "determined" else -s
-            d.line([(x - 75, EY - 140 - k * 30), (x + 75, EY - 140 + k * 30)], fill=BLACK, width=28)
+    if kind in ("happy", "talk", "sad", "scared", "determined"):
+        for s in (-1, 1): eye(d, s * EX, EZ)
+    if kind == "excited":
+        for s in (-1, 1): eye(d, s * EX, EZ + 0.01, 1.15)
+    if kind == "shocked":
+        for s in (-1, 1): eye(d, s * EX, EZ + 0.02, 1.3)
+    if kind in ("laugh", "blink"):
+        for s in (-1, 1): arc(d, px(s * EX), py(EZ - 0.01), ERX * 2.4 * U, 0.035 * U, 20, up=(kind == "blink"))
     if kind == "smug":
-        d.rectangle([L - 75, EY - 105, L + 75, EY - 40], fill=skin); d.rectangle([R - 75, EY - 105, R + 75, EY - 40], fill=skin)
-        for x in (L, R): d.line([(x - 70, EY - 40), (x + 70, EY - 40)], fill=BLACK, width=22)
-    MY = N * 0.72
-    if kind in ("happy", "blink"):
-        thick_arc(d, N / 2, MY - 40, 330, 90, 30, up=True)
-    elif kind in ("excited", "laugh"):
-        h = 170 if kind == "laugh" else 150
-        d.chord([N / 2 - 190, MY - h - 40, N / 2 + 190, MY + h - 40], 0, 180, fill=MOUTH)
-        d.chord([N / 2 - 120, MY + 20, N / 2 + 120, MY + h - 50], 180, 360, fill=TONGUE)
-        d.rectangle([N / 2 - 160, MY - 40, N / 2 + 160, MY - 10], fill=WHITE)
-    elif kind == "sad":
-        thick_arc(d, N / 2, MY + 20, 260, 70, 28, up=False)
+        for s in (-1, 1):
+            eye(d, s * EX, EZ - 0.01)
+            d.rectangle([px(s * EX - 0.09), py(EZ + 0.12), px(s * EX + 0.09), py(EZ + 0.005)], fill=skin)
+            d.line([(px(s * EX - 0.075), py(EZ + 0.005)), (px(s * EX + 0.075), py(EZ + 0.005))], fill=BLACK, width=20)
+    if kind == "determined":
+        brows(d, -1.2, z=EZ + 0.13)
+    if kind == "scared": brows(d, 1.1)
+    if kind == "sad":
+        brows(d, 1.3, z=0.225)
+        d.ellipse([px(-EX - 0.02), py(EZ - 0.12), px(-EX + 0.02), py(EZ - 0.18)], fill=TEAR)
+    # mouths
+    if kind in ("happy", "blink"): dmouth(d, 0.3, 0.1)
+    elif kind == "excited": dmouth(d, 0.36, 0.14, tongue=True)
+    elif kind == "laugh": dmouth(d, 0.38, 0.16, tongue=True)
+    elif kind == "talk": dmouth(d, 0.24, 0.12)
+    elif kind == "smug": arc(d, px(0.05), py(MZ - 0.02), 0.24 * U, 0.04 * U, 18, up=True)
+    elif kind == "sad": arc(d, px(0), py(MZ - 0.06), 0.2 * U, 0.035 * U, 18, up=False)
     elif kind == "shocked":
-        d.ellipse([N / 2 - 85, MY - 120, N / 2 + 85, MY + 90], fill=MOUTH)
-        d.ellipse([N / 2 - 50, MY + 10, N / 2 + 50, MY + 75], fill=TONGUE)
+        d.ellipse([px(-0.06), py(MZ + 0.01), px(0.06), py(MZ - 0.15)], fill=MOUTH)
     elif kind == "scared":
-        pts = [(N / 2 - 150 + i * 15, MY - 20 + (18 if (i // 2) % 2 else -18)) for i in range(21)]
-        d.line(pts, fill=BLACK, width=22, joint="curve")
+        pts = [(px(-0.12 + i * 0.012), py(MZ - 0.04 + (0.012 if (i // 2) % 2 else -0.012))) for i in range(21)]
+        d.line(pts, fill=BLACK, width=18, joint="curve")
     elif kind == "determined":
-        d.line([(N / 2 - 120, MY - 20), (N / 2 + 120, MY - 30)], fill=BLACK, width=28)
-    elif kind == "smug":
-        thick_arc(d, N / 2 + 40, MY - 40, 260, 60, 28, up=True)
-        d.rectangle([N / 2 - 140, MY - 80, N / 2 - 40, MY + 10], fill=skin)
-    elif kind == "talk":
-        d.ellipse([N / 2 - 110, MY - 90, N / 2 + 110, MY + 40], fill=MOUTH)
+        dmouth(d, 0.22, 0.05, teeth=True)
     return im.resize((512, 512), Image.LANCZOS)
 
 KINDS = ["happy", "excited", "laugh", "sad", "shocked", "scared", "determined", "blink", "smug", "talk"]
@@ -90,8 +88,8 @@ def ensure(kind, skin):
     return p
 
 if __name__ == "__main__":
-    skin = (0.45, 0.27, 0.16)
-    ims = [Image.open(ensure(k, skin)).resize((160, 160)) for k in KINDS]
-    W = Image.new("RGB", (160 * 5, 320))
-    for i, im in enumerate(ims): W.paste(im, ((i % 5) * 160, (i // 5) * 160))
-    W.save("/tmp/faces.jpg")
+    skin = (0.9, 0.6, 0.38)
+    ims = [Image.open(ensure(k, skin)).resize((200, 200)) for k in KINDS]
+    W = Image.new("RGB", (200 * 5, 400))
+    for i, im in enumerate(ims): W.paste(im, ((i % 5) * 200, (i // 5) * 200))
+    W.save("/home/claude/zara/egg/faces_sheet.png")

@@ -18,7 +18,7 @@ S.render.film_transparent = True
 S.render.image_settings.file_format = "PNG"; S.render.image_settings.color_mode = "RGBA"
 S.display.render_aa = "8"
 sh = S.display.shading
-sh.light = "STUDIO"; sh.studio_light = "outdoor.sl"; sh.color_type = "TEXTURE"; sh.show_shadows = True; sh.shadow_intensity = 0.45
+sh.light = "STUDIO"; sh.studio_light = "outdoor.sl"; sh.color_type = "TEXTURE"; sh.show_shadows = os.environ.get("SHADOWS","0")=="1"; sh.shadow_intensity = 0.45
 sh.show_cavity = True; sh.cavity_type = "BOTH"; sh.cavity_ridge_factor = 0.6; sh.cavity_valley_factor = 1.0
 sh.show_specular_highlight = True
 S.display.light_direction = (0.45, -0.35, 0.82)
