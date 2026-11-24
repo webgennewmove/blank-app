@@ -17,6 +17,8 @@ const BROWS = {
   shock:   [[-26, -20], [-26, -20]],
   sad:     [[-18, 8], [-18, 8]],
   happy:   [[-10, -10], [-10, -10]],
+  excited: [[-28, -24], [-28, -24]],
+  dizzy:   [[-14, 6], [6, -14]],
 };
 
 const ease = (x) => (x < 0.5 ? 2 * x * x : 1 - (-2 * x + 2) ** 2 / 2);
@@ -56,7 +58,7 @@ function drawBody(c) {
   }, '#d63a2f', 7);
 }
 
-function drawHead(c, expr, open, talk) {
+function drawHead(c, expr, open, talk, look, t) {
   const head = () => { c.beginPath(); c.arc(512, 300, 190, 0, Math.PI * 2); };
   c.fillStyle = SKIN; head(); c.fill();
   c.save(); head(); c.clip();
@@ -83,16 +85,25 @@ function drawHead(c, expr, open, talk) {
     c.lineWidth = 11; c.strokeStyle = K;
     c.beginPath(); c.moveTo(x - side * 26, 290 + inner); c.lineTo(x + side * 26, 290 + outer); c.stroke();
 
-    if (expr === 'shock') {
+    const lx = look * 10;
+    if (expr === 'shock' || expr === 'excited') {
       stroke2(c, () => { c.beginPath(); c.arc(x, 345, 34, 0, Math.PI * 2); }, '#fff', 8);
-      c.fillStyle = K; c.beginPath(); c.arc(x, 348, 11 * Math.max(open, 0.3), 0, Math.PI * 2); c.fill();
+      c.fillStyle = K; c.beginPath(); c.arc(x + lx * 1.6, 348, 11 * Math.max(open, 0.3), 0, Math.PI * 2); c.fill();
+    } else if (expr === 'dizzy') {
+      stroke2(c, () => { c.beginPath(); c.arc(x, 345, 34, 0, Math.PI * 2); }, '#fff', 8);
+      c.lineWidth = 6; c.beginPath();
+      for (let a = 0; a < Math.PI * 5; a += 0.25) {
+        const r = 1 + a * 1.8, px = x + Math.cos(a + t * 9 * side) * r, py = 345 + Math.sin(a + t * 9 * side) * r;
+        a ? c.lineTo(px, py) : c.moveTo(px, py);
+      }
+      c.stroke();
     } else if (expr === 'smug') {
-      c.fillStyle = K; c.beginPath(); c.ellipse(x, 342, 22, 13 * open, 0, 0, Math.PI); c.fill();
+      c.fillStyle = K; c.beginPath(); c.ellipse(x + lx, 342, 22, 13 * open, 0, 0, Math.PI); c.fill();
       c.lineWidth = 9; c.beginPath(); c.moveTo(x - 27, 342); c.lineTo(x + 27, 340); c.stroke();
     } else if (expr === 'happy') {
       c.lineWidth = 11; c.beginPath(); c.arc(x, 352, 20, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
     } else {
-      c.fillStyle = K; c.beginPath(); c.ellipse(x, 340, 16, 24 * open, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = K; c.beginPath(); c.ellipse(x + lx, 340, 16, 24 * open, 0, 0, Math.PI * 2); c.fill();
     }
   });
 
@@ -106,6 +117,8 @@ function drawHead(c, expr, open, talk) {
     c.fillStyle = '#e0626b'; c.beginPath(); c.ellipse(mx, my + ry * 0.9, rx * 0.8, ry * 0.6, 0, 0, Math.PI * 2); c.fill();
     c.restore();
     m(); c.stroke();
+  } else if (expr === 'excited') {
+    stroke2(c, () => { c.beginPath(); c.moveTo(mx - 44, my - 8); c.quadraticCurveTo(mx, my - 2, mx + 44, my - 8); c.quadraticCurveTo(mx, my + 62, mx - 44, my - 8); c.closePath(); }, '#4a1010', 10);
   } else if (expr === 'happy') {
     c.beginPath(); c.arc(mx, my - 20, 36, Math.PI * 0.2, Math.PI * 0.8); c.stroke();
   } else if (expr === 'smug') {
@@ -144,15 +157,15 @@ export function createBuck(THREE, { height = 3.1 } = {}) {
   const group = new THREE.Group();
   group.add(shadow, mesh);
 
-  function update(t, { pose = 'idle', expr = 'neutral', speaking = false } = {}, camera) {
+  function update(t, { pose = 'idle', expr = 'neutral', talk = 0, look = 0 } = {}, camera) {
     const open = t % 3.3 < 0.12 ? 0.15 : 1;
-    const talk = speaking ? Math.abs(Math.sin(t * 13)) * 0.85 * (0.6 + 0.4 * Math.abs(Math.sin(t * 5.3))) : 0;
     const e = at(expr, t).b;
+    const lk = typeof look === 'number' ? look : at(look, t).b;
     const p = at(pose, t);
 
     c.clearRect(0, 0, 1024, 1024);
     drawBody(c);
-    drawHead(c, e, open, talk);
+    drawHead(c, e, open, talk, lk, t);
     for (const side of ['L', 'R']) {
       const A = POSES[p.a][side], B = POSES[p.b][side];
       const pts = A.map((q, i) => [
@@ -164,7 +177,7 @@ export function createBuck(THREE, { height = 3.1 } = {}) {
     }
     tex.needsUpdate = true;
 
-    const bob = speaking ? 0.018 * Math.sin(t * 7) : 0.008 * Math.sin(t * 2);
+    const bob = 0.008 * Math.sin(t * 2) + talk * 0.02;
     mesh.scale.set(1 - bob * 0.6, 1 + bob, 1);
     if (camera) {
       mesh.rotation.y = Math.atan2(camera.position.x - group.position.x, camera.position.z - group.position.z) - group.rotation.y;

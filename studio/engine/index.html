@@ -15,9 +15,10 @@ const q = new URLSearchParams(location.search);
 const W = +q.get('w') || 1920, H = +q.get('h') || 1080;
 await document.fonts.load('900 80px Inter');
 const episode = (await import(`../episodes/${q.get('ep')}.js`)).default;
-const player = await createPlayer(episode, { width: W, height: H, audio: window.__audio });
+const words = await (await fetch(`../audio/${q.get('ep')}/words.json`)).json();
+const player = await createPlayer(episode, { width: W, height: H, words, env: window.__env ?? [], envRate: 60 });
 window.__duration = player.duration;
-window.__script = player.script;
+window.__script = player.shots;
 window.__frame = (t) => { player.renderAt(t); return document.getElementById('out').toDataURL('image/jpeg', 0.93); };
 window.__ready = true;
 </script>

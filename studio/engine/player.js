@@ -1,122 +1,153 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-export function timeWords(line, start) {
-  const words = [];
-  let t = start;
-  for (const raw of line.split(/\s+/).filter(Boolean)) {
-    const emph = raw.includes('*');
-    const text = raw.replace(/\*/g, '');
-    const digits = text.replace(/\D/g, '').length;
-    const chars = digits ? digits * 4 + (text.includes('$') ? 7 : 0) : text.replace(/[^\w$]/g, '').length;
-    const dur = 0.13 + 0.052 * chars;
-    words.push({ text, emph, start: t, end: t + dur });
-    t += dur + (/[.,?!:]$/.test(text) ? 0.28 : 0.02);
-  }
-  return words;
-}
+const GradeShader = {
+  uniforms: {
+    tDiffuse: { value: null }, sat: { value: 1 }, flash: { value: 0 }, ca: { value: 0.0012 }, time: { value: 0 },
+    grain: { value: 0.035 }, tint: { value: new THREE.Color(1, 1, 1) }, glitch: { value: 0 }, vig: { value: 0.35 },
+  },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform float sat, flash, ca, time, grain, glitch, vig; uniform vec3 tint; varying vec2 vUv;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main(){
+      vec2 uv = vUv;
+      if (glitch > 0.0) {
+        float band = floor(uv.y * 28.0);
+        float r = h(vec2(band, floor(time * 24.0)));
+        if (r > 0.55) uv.x += (r - 0.75) * 0.12 * glitch;
+      }
+      vec2 d = (uv - 0.5) * (ca + glitch * 0.02);
+      vec3 c = vec3(texture2D(tDiffuse, uv + d).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - d).b);
+      float l = dot(c, vec3(0.299, 0.587, 0.114));
+      c = mix(vec3(l), c, sat) * tint;
+      float v = smoothstep(0.85, 0.25, length(vUv - 0.5));
+      c *= mix(1.0 - vig, 1.0, v);
+      c = mix(c, vec3(1.0), flash);
+      c += (h(vUv * vec2(1931.0, 1087.0) + fract(time * 7.13)) - 0.5) * grain;
+      gl_FragColor = vec4(max(c, 0.0), 1.0);
+    }`,
+};
 
 function chunk(words) {
   const chunks = [];
   let cur = [];
   for (const w of words) {
     cur.push(w);
-    if (cur.length === 3 || /[.,?!:]$/.test(w.text)) { chunks.push(cur); cur = []; }
+    if (cur.length === 3 || /[.,?!:]$/.test(w.raw)) { chunks.push(cur); cur = []; }
   }
   if (cur.length) chunks.push(cur);
-  return chunks.map((ws, i, all) => ({
-    words: ws,
-    start: ws[0].start,
-    end: Math.min(ws.at(-1).end + 0.35, all[i + 1]?.start ?? Infinity),
-  }));
+  return chunks.map((ws, i, all) => ({ words: ws, start: ws[0].start, end: Math.min(ws.at(-1).end + 0.3, all[i + 1]?.start ?? Infinity) }));
 }
 
 function drawCaptions(ctx, t, chunks, W, H) {
   const ch = chunks.find((c) => t >= c.start && t < c.end);
   if (!ch) return;
-  const size = Math.round(Math.min(W, H) * (W > H ? 0.085 : 0.075));
+  const size = Math.round(Math.min(W, H) * (W > H ? 0.092 : 0.08));
   ctx.font = `900 ${size}px Inter`;
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
-  const gap = size * 0.28;
-  const widths = ch.words.map((w) => ctx.measureText(w.text).width);
-  const shown = widths.filter((_, i) => t >= ch.words[i].start);
-  let x = W / 2 - (shown.reduce((a, b) => a + b, 0) + gap * (shown.length - 1)) / 2;
-  const y = H * (W > H ? 0.84 : 0.7);
-  ch.words.forEach((w, i) => {
-    const visible = t >= w.start;
-    if (visible) {
-      const k = Math.min(1, (t - w.start) / 0.12);
-      const s = 1 + 0.18 * (1 - k) ** 2;
-      const active = t < (ch.words[i + 1]?.start ?? ch.end);
-      ctx.save();
-      ctx.translate(x + widths[i] / 2, y);
-      ctx.scale(s, s);
-      ctx.textAlign = 'center';
-      ctx.lineWidth = size * 0.24;
-      ctx.strokeStyle = '#0c0c0c';
-      ctx.strokeText(w.text, 0, 0);
-      ctx.fillStyle = w.emph ? '#5dff7a' : active ? '#ffd400' : '#ffffff';
-      ctx.fillText(w.text, 0, 0);
-      ctx.restore();
-    }
+  const gap = size * 0.26;
+  const shown = ch.words.filter((w) => t >= w.start);
+  const widths = shown.map((w) => ctx.measureText(w.text).width);
+  let x = W / 2 - (widths.reduce((a, b) => a + b, 0) + gap * (widths.length - 1)) / 2;
+  const y = H * (W > H ? 0.83 : 0.68);
+  shown.forEach((w, i) => {
+    const k = Math.min(1, (t - w.start) / 0.1);
+    const s = 1 + 0.28 * (1 - k) ** 2;
+    const active = i === shown.length - 1 && t < w.end + 0.15;
+    ctx.save();
+    ctx.translate(x + widths[i] / 2, y);
+    ctx.scale(s, s);
+    ctx.rotate(w.color ? -0.035 : 0);
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowOffsetY = size * 0.08;
+    ctx.lineWidth = size * 0.24; ctx.strokeStyle = '#0c0c0c';
+    ctx.strokeText(w.text, 0, 0);
+    ctx.shadowColor = 'transparent';
+    ctx.fillStyle = w.color ?? (active ? '#ffd400' : '#ffffff');
+    ctx.fillText(w.text, 0, 0);
+    ctx.restore();
     x += widths[i] + gap;
   });
 }
 
-function vignette(ctx, W, H) {
-  const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, 'rgba(0,0,0,0.35)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-}
-
-export async function createPlayer(episode, { width: W, height: H, audio = null }) {
+export async function createPlayer(episode, { width: W, height: H, words: rawWords, env = [], envRate = 60 }) {
   const gl = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   gl.setPixelRatio(1);
   gl.setSize(W, H, false);
   gl.outputColorSpace = THREE.SRGBColorSpace;
 
+  const composer = new EffectComposer(gl, new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, samples: 4 }));
+  composer.setPixelRatio(1);
+  composer.setSize(W, H);
+  const renderPass = new RenderPass(new THREE.Scene(), new THREE.PerspectiveCamera());
+  const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.85, 0.55, 1.08);
+  const grade = new ShaderPass(GradeShader);
+  composer.addPass(renderPass);
+  composer.addPass(bloom);
+  composer.addPass(grade);
+  composer.addPass(new OutputPass());
+
   const out = document.getElementById('out');
   out.width = W; out.height = H;
   const ctx = out.getContext('2d');
 
-  const shots = [];
-  let t0 = 0;
-  episode.shots.forEach((s, i) => {
-    const a0 = t0 + (s.lead ?? 0.3);
-    const words = timeWords(s.line, a0);
-    const clip = audio?.[i];
-    if (clip) {
-      const k = clip.speech / (words.at(-1).end - a0);
-      for (const w of words) { w.start = a0 + (w.start - a0) * k; w.end = a0 + (w.end - a0) * k; }
-    }
-    const end = Math.max(words.at(-1).end, clip ? a0 + clip.dur : 0) + (s.tail ?? 0.5);
-    shots.push({ ...s, start: t0, end, audioStart: a0, words, built: s.build({ W, H }) });
-    t0 = end;
+  const words = rawWords.map((w, i) => {
+    const color = episode.emph?.[i];
+    const clean = w.w.replace(/[.,]$/, '');
+    return { raw: w.w, text: color ? clean.toUpperCase() : clean, start: w.s, end: w.e, color };
   });
-  const allWords = shots.flatMap((s) => s.words);
-  const chunks = chunk(allWords);
+  const chunks = chunk(words);
+  const duration = words.at(-1).end + (episode.tail ?? 1.2);
+  const at = (i) => words[Math.min(i, words.length - 1)].start;
+
+  const sets = episode.setup({ W, H });
+  const shots = episode.shots.map((s, i) => ({ ...s, start: i === 0 ? 0 : Math.max(0, at(s.at) - 0.06) }));
+  shots.forEach((s, i) => { s.end = shots[i + 1]?.start ?? duration; });
+
+  const talkAt = (t) => {
+    const v = env[Math.floor(t * envRate)] ?? 0;
+    return v < 0.12 ? 0 : Math.min(1, Math.sqrt(v));
+  };
 
   function renderAt(t) {
     const shot = shots.find((s) => t >= s.start && t < s.end) ?? shots.at(-1);
     const lt = t - shot.start;
-    const speaking = shot.words.some((w) => t >= w.start && t < w.end - 0.03);
-    const { scene, camera, update } = shot.built;
-    const cue = (i) => shot.words[Math.min(i, shot.words.length - 1)].start - shot.start;
-    update(lt, { speaking, dur: shot.end - shot.start, t, cue });
-    gl.render(scene, camera);
+    const set = sets[shot.set];
+    const fx = { sat: 1, flash: 0, glitch: 0, tint: [1, 1, 1], shake: 0, bloom: 0.85, vig: 0.35 };
+    const api = {
+      t, lt, dur: shot.end - shot.start, fx, set, sets, duration,
+      talk: talkAt(t),
+      at, cue: (i) => at(i) - shot.start, since: (i) => t - at(i),
+    };
+    shot.update?.(lt, api);
+    if (shot.start > 0) fx.flash = Math.max(fx.flash, 0.35 * Math.max(0, 1 - lt / 0.09));
+
+    const cam = set.camera;
+    const saved = cam.position.clone();
+    if (fx.shake > 0) {
+      const n = (a) => Math.sin(t * 61.3 + a) * 0.6 + Math.sin(t * 37.7 + a * 2.1) * 0.4;
+      cam.position.x += n(0) * fx.shake * 0.12;
+      cam.position.y += n(5) * fx.shake * 0.12;
+    }
+    renderPass.scene = set.scene;
+    renderPass.camera = cam;
+    bloom.strength = fx.bloom;
+    const u = grade.uniforms;
+    u.sat.value = fx.sat; u.flash.value = fx.flash; u.glitch.value = fx.glitch; u.time.value = t; u.vig.value = fx.vig;
+    u.tint.value.setRGB(...fx.tint);
+    composer.render();
+    cam.position.copy(saved);
+
     ctx.drawImage(gl.domElement, 0, 0);
-    vignette(ctx, W, H);
+    episode.hud?.(ctx, t, { ...api, W, H, shot });
     drawCaptions(ctx, t, chunks, W, H);
-    const flash = Math.max(0, 1 - lt / 0.12);
-    if (shot.start > 0 && flash > 0) { ctx.fillStyle = `rgba(255,255,255,${flash * 0.5})`; ctx.fillRect(0, 0, W, H); }
   }
 
-  return {
-    duration: t0,
-    renderAt,
-    script: shots.map((s) => ({ start: s.start, end: s.end, audioStart: s.audioStart, line: s.line.replace(/\*/g, '') })),
-    words: allWords,
-  };
+  return { duration, renderAt, shots: shots.map((s) => ({ set: s.set, start: s.start, end: s.end })) };
 }

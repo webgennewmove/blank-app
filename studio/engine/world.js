@@ -15,14 +15,14 @@ export function rng(seed) {
   };
 }
 
-const gradientMap = (() => {
+export const gradientMap = (() => {
   const t = new THREE.DataTexture(new Uint8Array([110, 190, 255]), 3, 1, THREE.RedFormat);
   t.minFilter = t.magFilter = THREE.NearestFilter;
   t.needsUpdate = true;
   return t;
 })();
 
-const outlineMat = new THREE.ShaderMaterial({
+export const outlineMat = new THREE.ShaderMaterial({
   uniforms: { w: { value: 0.035 } },
   vertexShader: `uniform float w;
     void main() {
@@ -63,11 +63,11 @@ export function textPanel(w, h, draw, { pxPerUnit = 256 } = {}) {
   return m;
 }
 
-export function makeStage({ W, H, sky = ['#7fd3ff', '#fff4d6'], ground = '#7ac06b', fog = null, fov = 35 }) {
+export function makeStage({ W, H, sky = ['#7fd3ff', '#fff4d6'], ground = '#7ac06b', fog = null, fov = 35, hemi = 1.4, sunK = 2.0 }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(fov, W / H, 0.1, 500);
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x8888aa, 1.4));
-  const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8888aa, hemi));
+  const sun = new THREE.DirectionalLight(0xffffff, sunK);
   sun.position.set(4, 10, 8);
   scene.add(sun);
 
@@ -86,7 +86,7 @@ export function makeStage({ W, H, sky = ['#7fd3ff', '#fff4d6'], ground = '#7ac06
   g.rotation.x = -Math.PI / 2;
   scene.add(g);
   if (fog) scene.fog = new THREE.Fog(fog[0], fog[1], fog[2]);
-  return { scene, camera };
+  return { scene, camera, ground: g };
 }
 
 export function moveCamera(camera, { from, to, lookFrom, lookTo = lookFrom, k }) {
@@ -164,4 +164,73 @@ export function stamp(text = 'BANKRUPT', { w = 1.8 } = {}) {
     c.fillText(text, 0, H * 0.03, W * 0.82);
     c.restore();
   });
+}
+
+export const glowMat = (color, k = 3) => new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), toneMapped: false });
+
+export function neonText(text, { h = 1, color = '#ff3b8d', k = 2.6 } = {}) {
+  const probe = document.createElement('canvas').getContext('2d');
+  probe.font = '900 200px Inter';
+  const w = h * (probe.measureText(text).width / 200 * 0.75 + 0.4);
+  const tex = canvasTexture(Math.round(w * 220), Math.round(h * 220), (c, W, H) => {
+    c.font = `900 ${H * 0.72}px Inter`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineJoin = 'round'; c.lineWidth = H * 0.07; c.strokeStyle = '#fff';
+    c.strokeText(text, W / 2, H * 0.54);
+    c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillText(text, W / 2, H * 0.54);
+  });
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, color: new THREE.Color(color).multiplyScalar(k), toneMapped: false, depthWrite: false });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+  m.userData.base = new THREE.Color(color);
+  m.setGlow = (kk) => mat.color.copy(m.userData.base).multiplyScalar(kk);
+  return m;
+}
+
+export function rectPoints(w, h, step) {
+  const pts = [];
+  const nx = Math.round(w / step), ny = Math.round(h / step);
+  for (let i = 0; i < nx; i++) pts.push(new THREE.Vector3(-w / 2 + (i / nx) * w, h / 2, 0));
+  for (let i = 0; i < ny; i++) pts.push(new THREE.Vector3(w / 2, h / 2 - (i / ny) * h, 0));
+  for (let i = 0; i < nx; i++) pts.push(new THREE.Vector3(w / 2 - (i / nx) * w, -h / 2, 0));
+  for (let i = 0; i < ny; i++) pts.push(new THREE.Vector3(-w / 2, -h / 2 + (i / ny) * h, 0));
+  return pts;
+}
+
+const bulbGeo = new THREE.SphereGeometry(1, 10, 8);
+export function bulbRow(points, { color = '#ffd36b', size = 0.07, k = 3 } = {}) {
+  const on = glowMat(color, k);
+  const off = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(0.3) });
+  const g = new THREE.Group();
+  for (const p of points) {
+    const m = new THREE.Mesh(bulbGeo, on);
+    m.scale.setScalar(size);
+    m.position.copy(p);
+    g.add(m);
+  }
+  g.chase = (t, speed = 8, every = 3) => g.children.forEach((m, i) => { m.material = (Math.floor(t * speed) + i) % every === 0 ? off : on; });
+  g.blink = (t, speed = 10) => g.children.forEach((m) => { m.material = Math.floor(t * speed) % 2 ? off : on; });
+  return g;
+}
+
+export function carpetTexture(repeat = 24) {
+  const tex = canvasTexture(256, 256, (c, W, H) => {
+    c.fillStyle = '#6e0d1c'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = '#d9a43a'; c.lineWidth = 6;
+    c.beginPath(); c.moveTo(W / 2, 10); c.lineTo(W - 10, H / 2); c.lineTo(W / 2, H - 10); c.lineTo(10, H / 2); c.closePath(); c.stroke();
+    c.fillStyle = '#1f3f8f';
+    c.beginPath(); c.arc(W / 2, H / 2, 34, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#d9a43a';
+    for (const [x, y] of [[0, 0], [W, 0], [0, H], [W, H]]) { c.beginPath(); c.arc(x, y, 26, 0, Math.PI * 2); c.fill(); }
+    c.strokeStyle = '#2b9a6a'; c.lineWidth = 4;
+    c.beginPath(); c.arc(W / 2, H / 2, 60, 0, Math.PI * 2); c.stroke();
+  });
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeat, repeat);
+  return tex;
+}
+
+export function stringBetween(mesh, a, b) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  mesh.position.copy(a).addScaledVector(d, 0.5);
+  mesh.scale.set(1, d.length(), 1);
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
 }
