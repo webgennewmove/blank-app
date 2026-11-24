@@ -62,7 +62,7 @@ if (stills) {
   fs.writeFileSync(outFile.replace(/\.mp4$/, '.script.json'), JSON.stringify(script, null, 2));
   const audio = ['-i', voice];
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
-    ...audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
+    ...audio, '-c:v', 'libx264', '-preset', 'medium', '-crf', '21', '-maxrate', '14M', '-bufsize', '28M', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-af', 'apad', '-shortest', '-movflags', '+faststart', outFile], { stdio: ['pipe', 'inherit', 'inherit'] });
   const frames = Math.ceil(duration * fps);
   const t0 = Date.now();
