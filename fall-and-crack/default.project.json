@@ -1,0 +1,23 @@
+{
+  "name": "FallAndCrackAudio",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Audio": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Audio": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
