@@ -142,6 +142,7 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 | Kofi (Night Rules) | Liam | `TX3LPaxmHKxFdv7VOQHJ` |
 | **Dre (ON MY BLOCK, the only voice, current)** | Dre - On My Block narrator (designed: hype, funny, young adult East Coast) | `vA7VdYNRDShiWPeVQjRp` |
 | **Toby (IN MY TOWN, the only voice)** | Toby - In My Town narrator (designed: energetic, extroverted, youthful American male) | `1BempFyI57oP6ldXrZtr` |
+| **IN MY TOWN: The Game** | Rico = Caliph - Upbeat Gamer `GzrA7L2rl4TVlFYss7aF`; Maya = Hallie - Fun, Young & Feminine `jpICOesdLlRSc39O1UB5`; Leo + game voice (pitched down) = Dre `vA7VdYNRDShiWPeVQjRp`. No British voices: user wants American, energetic, extroverted. |
 
 - Use audio tags in prompts: `[excited]`, `[whispering]`, `[deadpan]`, `[panicking]`, etc.
 - The account is on the **free plan (10k credits/month)**. Free-plan audio isn't licensed for commercial use, so upgrade to Starter before monetising.

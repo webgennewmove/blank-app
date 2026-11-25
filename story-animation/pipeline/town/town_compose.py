@@ -11,6 +11,10 @@ TL = json.load(open(f"{E}/timeline.json")); ORDER = TL["shots"]; DUR = TL["dur"]
 HOT = {"never", "game", "jayden", "don't!", "don't", "obviously", "rolled", "rolled.", "rolled!", "chair", "chair.", "filming", "story",
        "six", "five", "sixth", "whiskers", "whiskers!", "cat", "cat!", "dice", "dice!", "anymore", "final", "selected", "gladiator"}
 GREEN = (90, 255, 150); GOLD = (255, 205, 60)
+def wt(s, word, k=0):
+    word = word.lower().strip(".,!?")
+    hits = [a for w, a, b in WORDS[s] if w.lower().strip(".,!?…") == word]
+    return hits[min(k, len(hits) - 1)] if hits else 0.0
 
 def build_fx(s, d):
     fx = FX(s, d); X = W / 2
