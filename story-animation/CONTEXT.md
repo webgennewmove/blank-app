@@ -222,3 +222,13 @@ Requirements: `bpy` (Python 3.11 venv), Pillow, numpy, librosa, soundfile, kokor
 
 - (Nov 2026: ElevenLabs downloads from `elevenlabsusercontent.com` now work in the cloud container.) Earlier note: the cloud workspace can't download from ElevenLabs/ForgeGUI file hosts, so voice files have to be attached manually (or fetched via the desktop app's browser).
 - Large crowds: use `crowd_merged()` with the low-poly `POSES_LO` Milos for anything far from the camera.
+
+## Pirates episode: "I'm The Captain Now (For 3 Seconds)"
+Pipeline in `pipeline/pirates/`:
+- `pir_sets.py`: sea, cargo ship, skiff, cast and effects.
+- `pir.py`: 50 shots, rendered with `EEVEE=1 python pir.py -- <shots>`.
+- `pir_timeline.py`
+- `pir_compose.py`: captions, slams and the "CAPTAINS TODAY" counter.
+- `pir_audio.py`: VO, synth SFX and the ducked Numbers bed.
+
+The final runs 78.25 s, in two versions: with music and without.
