@@ -68,6 +68,33 @@ A faceless short-form channel posting **addictive, serialized, Roblox-style anim
 
 **Comment bait:** "What hatched? Wrong answers only." Part 2 ideas: what hatched, the mayor's revenge, Grow a Garden crossover.
 
+## 4c. IN MY TOWN: The Game (cinematic universe, Nov 2026)
+
+**Brief from the owner:** a cinematic family-adventure series in an ordinary British town (library, corner shop, park bandstand, clock tower). The palette is midnight blue, amber streetlights, emerald green and gold, with feature-film cameras.
+**Production rules:**
+- Nothing static for 5 s.
+- Don't reveal the biggest spectacle in the opening.
+- No follow/subscribe outro: the story ends and loops.
+
+**Style decision:** the owner first asked for Pixar-like models. Image-to-3D (Meshy) and AI video weren't available (no key, paid plans), and they rejected hand-built "smooth" models, so they chose **the Roblox look** (R6 rig and painted faces, `town/rcast.py`) inside cinematic EEVEE sets.
+**Cast (from their character sheet):**
+- **Jayden**: black puffer, curly top. He rolls the dice.
+- **Maya**: pink crop hoodie, long curls, hoops. She stops him and finds the solution.
+- **Leo**: denim jacket, swoopy brown hair. Comic relief.
+- **Tyrone**: green hoodie, glasses, big. Fights the croc with a chair.
+- **Rico**: black, backwards cap. Films everything and **narrates**.
+- **Whiskers**: tabby cat. Secretly the sixth player; wears the golden crown.
+
+**Ep1 script (approved upgrade):** "In my town there's one game you're never allowed to play" → the board is a **map of our town** (each roll turns a real place into a level, which sets up the series) → Maya: "Jayden, don't!" → he rolls → the windows shatter in bullet-time → crocodile → Tyrone plus chair → Rico's phone POV → GAME: "Six players. Six squares." → Maya: "There's only five of us" → everyone turns to the cat → Whiskers rolls → emerald vortex to the jungle → "Guys… where's Whiskers?" → ROAR, Whiskers on a branch in a crown → GAME: "The final player has been selected", and the trees turn to face them → "And that's why…" loops into "In my town…". A hidden detail in s09 (Whiskers nudging the dice) drives rewatches and comments.
+**Voices:**
+- Rico: designed, `QqO8z07M2DIuW3MHy5SL`.
+- Maya: Evie, `KpKlC1Ey74H3XPtTv7nv`.
+- Leo: Peter, `Y8bH5VlCiEtvsc2vu6df`.
+- The game: Ben Lucas `DlSZgkElKXmDKq713bQ6`, pitched −4 semitones with reverb.
+
+**Files:** `pipeline/town/` (`game.py` sets/shots, `town_timeline.py`, `town_compose.py` grade/bloom/phone UI/captions, `town_audio.py`). Rendering takes about 20 s/frame per process (two in parallel).
+**Next episodes:** the corner shop square, the park bandstand, the clock tower (the boss level).
+
 ## 4. IN MY HOOD: format
 
 **Logline:** In my hood, whatever number you say out loud… that's how many of you pull up.
