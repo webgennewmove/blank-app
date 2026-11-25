@@ -199,6 +199,14 @@ python egg_compose.py egg/egg_noaudio.mp4             # composite with hypnotic 
 python egg_audio.py                                   # egg_mix.wav + egg_mix_nomusic.wav
 ```
 
+IN MY TOWN "My Whole Town Glows… Except Me" (Christmas, ~82 s, Rico narrates, voice Caliph). Files `pipeline/town/glow_*.py`, data in `town/glow/`. Overseer-agent rules: no clipping/interpenetration, never edit cached shared meshes (always `o.data = o.data.copy()` before changing materials), inverse-scale children of unbevelled boxes.
+```bash
+python glow_timeline.py                                   # words.json -> glow/ep/timeline.json (53 shots)
+EEVEE=1 python glow.py -- all still                       # previews (STILLF=0.3 etc. for other frames)
+EEVEE=1 python glow.py -- s01,...,s24 &  EEVEE=1 python glow.py -- s25,...,s53 &   # ~2.5 h
+python glow_compose.py glow/ep/glow_noaudio.mp4 && python glow_audio.py
+```
+
 Run order for a hood episode:
 ```bash
 python hsplit.py                                     # after voice files are in hel/
