@@ -74,7 +74,8 @@ for k in range(3): add(sfx, jingle(1), at("s39", 0.3 + k * 0.6), 0.5)
 add(sfx, zipper(0.45), at("s41", 0.05), 1.0); add(sfx, click(), at("s42", 0.2), 1.0)
 add(sfx, whoosh(0.4), at("s44", A["s44"][1] * 0.35), 0.5)
 for k in range(3): add(sfx, jingle(1), at("s48", 0.1 + k * 0.33), 0.5)
-add(sfx, sparkle_s(A["s51"][1]), at("s51"), 0.6); add(sfx, chime(84, 5), at("s51", A["s51"][1] * 0.35), 0.4)
+add(sfx, sparkle_s(A["s51"][1]), at("s51"), 0.6); add(sfx, chime(84, 5), at("s51", wt("s51", "top")), 0.45); add(sfx, slam(), at("s51", wt("s51", "top")), 0.5)
+add(sfx, slam(), at("s53", wt("s53", "concert.")), 0.7); add(sfx, chime(88, 6), at("s53", wt("s53", "concert.")), 0.4); add(sfx, slam(), at("s40", 0.42), 0.6)
 add(sfx, buzz(A["s52"][1] + A["s53"][1], 95) * 0.5, at("s52"), 0.4)
 # music bed with drops
 mp = f"{MUS}/numbers.wav"
@@ -85,8 +86,8 @@ def ramp(t0, t1, g0, g1):
 def hold_(t0, t1, g): gain[int(t0 * SR):int(t1 * SR)] = g
 ramp(0, 0.3, 0.5, 1.0)
 d1 = at("s12"); ramp(d1, d1 + 0.08, 1, 0); hold_(d1 + 0.08, at("s13", 0.05), 0); ramp(at("s13", 0.05), at("s13", 0.1), 0, 1.05)
-d2 = at("s23"); ramp(d2, d2 + 0.3, 1, 0.35); hold_(d2 + 0.3, at("s26"), 0.35); ramp(at("s26"), at("s26", 0.05), 0.35, 1.2)
-d3 = at("s37"); ramp(d3, d3 + 0.1, 1, 0); hold_(d3 + 0.1, at("s42", 0.2), 0.1); ramp(at("s42", 0.2), at("s42", 0.25), 0.1, 1.15)
+d2 = at("s23"); ramp(d2, d2 + 0.3, 1, 0.5); hold_(d2 + 0.3, at("s26"), 0.5); ramp(at("s26"), at("s26", 0.05), 0.5, 1.2)
+d3 = at("s37"); ramp(d3, d3 + 0.1, 1, 0); hold_(d3 + 0.1, at("s38"), 0.0); ramp(at("s38"), at("s38", 0.3), 0.0, 0.3); hold_(at("s38", 0.3), at("s42", 0.2), 0.3); ramp(at("s42", 0.2), at("s42", 0.25), 0.3, 1.15)
 d4 = at("s52"); ramp(d4, d4 + 0.4, 1, 0.45)
 mus = mus * gain * (1 - 0.6 * talk) * 0.36
 def master(with_music):

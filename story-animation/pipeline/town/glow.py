@@ -795,8 +795,8 @@ def s51(n):   # top of the tree: Rico tosses the crumpled DEAD BULB note; Jayden
     top = Q + Vector((0, 0, TREE_H + 0.3)); R = rico(top, look_rot(top, top + Vector((0, -10, 0)))); R.root.scale = (1.0,) * 3
     light("starglow", "POINT", top + Vector((0, -2.5, 3.5)), 250, (1, 0.8, 0.35), coll=TEMP, radius=1.5).data.use_shadow = False; rico_shade(R, 0.42)
     hold(R, 1, n, face="happy", arms=(0, 2.9), arms_side=(0.1, 0.35))
-    nt, _ = note(R, "STAR", col=(1, 0.85, 0.1)); vis(nt, 1, False); vis(nt, int(n * 0.35), True)
-    R.set_face("excited", int(n * 0.35))
+    nt, _ = note(R, "STAR", col=(1, 0.85, 0.1)); vis(nt, 1, False); vis(nt, int(n * 0.55), True)
+    R.set_face("excited", int(n * 0.55))
     crum = sphere("crumple", top + Vector((1.5, -0.5, 3.5)), 0.22, mat("notem(1.0, 0.92, 0.25)", (1.0, 0.92, 0.25), 0.8), coll=TEMP, seg=6)
     for f in range(1, n + 1):
         u = f / n; crum.location = top + Vector((1.5 + 6 * u, -0.5 - 2 * u, 3.5 + 3 * u - 14 * u * u)); crum.keyframe_insert("location", frame=f)
@@ -804,14 +804,8 @@ def s51(n):   # top of the tree: Rico tosses the crumpled DEAD BULB note; Jayden
     hold(st, 1, n, face="happy", arms=(0, 2.7), arms_side=(0.1, 0.2))
     may = mk_mayor(); mp = Q + Vector((4.5, -17, 0)); may.place(mp, look_rot(mp, Q + Vector((0, -40, 0)))); bx, pants = boxers(may); vis(pants, 1, False); vis(bx, 1, True)
     hold(may, 1, n, face="happy", arms=(0, 2.4), arms_side=(0, -0.6))
-    tgt = top + Vector((0, 0, 2.6)); cut = int(n * 0.55)
-    cpath(n, tgt + Vector((0.8, -8.0, 0.6)), tgt, tgt + Vector((0.9, -7.4, 0.5)), tgt, 30, 31, f1=cut - 1)
-    cpath(n, Q + Vector((0, -26, 2.5)), Q + Vector((0, 0, 22)), Q + Vector((0, -25, 2.7)), Q + Vector((0, 0, 22.5)), 19, 19, f0=cut)
-    for o_ in (CAM, CAM.data):
-        ad = o_.animation_data
-        for fc in (ad.action.fcurves if ad and ad.action and hasattr(ad.action, "fcurves") else []):
-            for kp in fc.keyframe_points:
-                if abs(kp.co.x - (cut - 1)) < 0.5: kp.interpolation = "CONSTANT"
+    tgt = top + Vector((0, 0, 2.6))   # close for the whole shot (STAR lands on the close)
+    cpath(n, tgt + Vector((0.8, -8.0, 0.6)), tgt, tgt + Vector((0.9, -7.0, 0.4)), tgt, 30, 32)
 def concert(n, sway=False):
     """moths sitting in rows facing the flashlight rock; spacing checked so no wings overlap"""
     light("spill", "POINT", ROCK + Vector((0, -3, 3.5)), 1400, (1, 0.85, 0.6), coll=TEMP, radius=2).data.use_shadow = False
@@ -838,9 +832,9 @@ def s53(n):   # antennae sway in unison; one crowd-surfs over the others
     ms = concert(n, sway=True)
     surf = Moth(TEMP, 0.7, 200); surf.flap(1, n, speed=0.8, amp=0.1, base=0.0)
     light("surfl", "POINT", ROCK + Vector((0, -12, 7)), 700, (1, 0.85, 0.6), coll=TEMP, radius=1).data.use_shadow = False
-    a0 = ROCK + Vector((-10, -12.5, 3.6)); a1 = ROCK + Vector((10, -12.5, 3.6))
+    a0 = ROCK + Vector((-11, -12.5, 3.6)); a1 = ROCK + Vector((0.6, -12.5, 3.6))   # ends centre-frame: last thing on screen
     for f in range(1, n + 1):
-        u = f / n; surf.root.location = a0.lerp(a1, u) + Vector((0, 0, 0.2 * math.sin(f / 3))); surf.root.rotation_euler = (math.pi, 0, 0.4 * math.sin(f / 5))
+        u = 1 - (1 - min(1, f / (n * 0.8))) ** 2; surf.root.location = a0.lerp(a1, u) + Vector((0, 0, 0.2 * math.sin(f / 3))); surf.root.rotation_euler = (math.pi, 0, 0.4 * math.sin(f / 5))
         surf.root.keyframe_insert("location", frame=f); surf.root.keyframe_insert("rotation_euler", frame=f)
     tgt = ROCK + Vector((0, -7, 2.0))
     cpath(n, tgt + Vector((3, -14, 3.4)), tgt + Vector((0, 2, 0)), tgt + Vector((2.4, -12.5, 3.0)), tgt + Vector((0, 2, 0)), 28, 30)
