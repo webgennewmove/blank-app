@@ -12,7 +12,9 @@ exec(open("/home/claude/zara/eevee_patch.py").read())
 exec(open("/home/claude/zara/town/rcast.py").read())
 STILL = len(REAL_ARGV) > 1 and REAL_ARGV[1] == "still"
 E = "/home/claude/zara/town/ep"; OUT = f"{E}/frames"
-S.render.resolution_x, S.render.resolution_y = 720, 1280
+S.render.resolution_x, S.render.resolution_y = 576, 1024
+try: S.eevee.shadow_resolution_scale = 0.5
+except Exception: pass
 S.render.film_transparent = False
 TL = json.load(open(f"{E}/timeline.json")); DUR = TL["dur"]; LEADS = TL["lead"]; WORDS = TL["words"]
 WORLD.hide_render = True; ROOM.hide_render = True
@@ -746,6 +748,9 @@ def track_json(n):
         p = TRACK[0].matrix_world.translation; v = world_to_camera_view(S, CAM, p); out.append((round(v.x, 4), round(1 - v.y, 4), round(v.z, 2)))
     return out
 
+for o in S.objects:
+    if o.type == "LIGHT" and o.name.split(".")[0] in ("lamp", "cablight", "doorlight", "boardglow", "fillback", "jfill", "chand"):
+        o.data.use_shadow = False
 SHOTS = {k: v for k, v in list(globals().items()) if k.startswith("s") and k[1:3].isdigit() and callable(v)}
 os.makedirs(OUT, exist_ok=True); os.makedirs(f"{E}/preview", exist_ok=True)
 STATIC = [GBOX, BGLOW.data, DOORL, DOORR, CHAIRS[1]] + DICE + FACE_TREES + PANES + DUST + FIREFLY + [h for h, _ in BHALF]
